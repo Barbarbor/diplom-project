@@ -1,0 +1,56 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Output of the go coverage tool
+*.out
+*.cover
+
+# Dependency directories
+# vendor/
+
+# Go workspace file
+go.work
+
+# Configuration files
+config/config.json
+*.env
+*.yaml
+*.yml
+*.toml
+*.ini
+*.msgpack
+*.json5
+
+# Logs
+/logs
+*.log
+
+# Temporary files and caches
+*.cache
+tmp/
+bin/
+
+# IDE and editor specific files
+.idea/
+.vscode/
+# Vim swap files
+*.swp
+# macOS file
+.DS_Store
+# Windows file
+Thumbs.db
+
+# Certs
+certs/
+
+# XML and JSON files (if not needed in version control)
+*.xml
+*.json
+
+# Ignore constant shape directory if it contains generated or temporary files
+/constant/shape/
