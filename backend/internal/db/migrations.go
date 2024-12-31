@@ -5,9 +5,9 @@ import (
 	"os/exec"
 )
 
-func RunMigrations() error {
+func RunMigrations(databaseURL string) error {
 	// Убедитесь, что путь и база данных указаны правильно
-	cmd := exec.Command("migrate", "-path", "./migrations", "-database", "postgres://postgres:12345@localhost:5432/surveydb?sslmode=disable", "up")
+	cmd := exec.Command("migrate", "-path", "./migrations", "-database", databaseURL, "up")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("Migration error: %s", string(output))

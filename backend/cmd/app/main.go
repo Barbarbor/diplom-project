@@ -8,12 +8,9 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load("C:/diplom/survey-platform/backend/.env")
-
 	cfg := config.LoadConfig()
 
 	// Подключение к базе данных

@@ -1,1 +1,0 @@
-ALTER TABLE surveys ADD COLUMN content TEXT;

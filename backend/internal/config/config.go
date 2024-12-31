@@ -1,6 +1,10 @@
 package config
 
-import "os"
+import (
+	"os"
+
+	_ "github.com/joho/godotenv/autoload"
+)
 
 type Config struct {
 	DatabaseURL string
@@ -8,8 +12,17 @@ type Config struct {
 }
 
 func LoadConfig() Config {
-	return Config{
+
+	// Возвращаем конфигурацию
+	config := Config{
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		ServerPort:  os.Getenv("SERVER_PORT"),
 	}
+
+	// Устанавливаем значение по умолчанию для порта
+	if config.ServerPort == "" {
+		config.ServerPort = ":8080" // Значение по умолчанию
+	}
+
+	return config
 }
