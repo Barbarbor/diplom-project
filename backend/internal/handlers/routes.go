@@ -24,11 +24,10 @@ func RegisterRoutes(router *gin.Engine, db *sqlx.DB) {
 			profile.GET("", GetProfileHandler(db))
 			profile.PUT("", UpdateProfileHandler(db))
 		}
-
-		// Survey routes
-		surveys := api.Group("/surveys")
+		surveys := api.Group("/surveys", middleware.AuthMiddleware())
 		{
-			surveys.GET("", GetSurveysHandler(db))
+			surveys.POST("", CreateSurveyHandler(db))
+			surveys.GET("/:hash", GetSurveyHandler(db))
 		}
 	}
 }

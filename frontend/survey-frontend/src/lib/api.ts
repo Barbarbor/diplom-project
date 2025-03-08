@@ -34,28 +34,13 @@ const request = async <T = unknown>({
     "Content-Type": "application/json",
   };
 
-  // Если не нужно отключать использование куки, пробуем их использовать.
-  if (!disableAuthCookie) {
-    const authToken = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("auth_token="))
-      ?.split("=")[1];
-
-    if (authToken) {
-      headers["Authorization"] = `Bearer ${authToken}`;
-    } else {
-      return {
-        error: "Unauthorized",
-        status: 401,
-      };
-    }
-  }
+  
 
   const fetchOptions: RequestInit = {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include", // Включаем автоматическую передачу куки
+    credentials: !disableAuthCookie ? "include": 'omit', // Включаем автоматическую передачу куки
     cache: cache.disabled ? "no-store" : "force-cache",
   };
 

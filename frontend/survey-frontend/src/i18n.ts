@@ -37,7 +37,7 @@ const resources = {
         phoneNumber: "Phone Number",
         language: "Preferred Language",
         save: "Save Changes",
-        login:'Sign in'
+        login: "Sign in",
       },
     },
   },
@@ -60,8 +60,8 @@ const resources = {
         },
         switch_to_login: "Уже есть аккаунт? Войти",
         switch_to_register: "Нет аккаунта? Зарегистрироваться",
-        create_poll: "Создать опрос",
-        polls_list: "Список опросов",
+        create_survey: "Создать опрос",
+        surveys_list: "Список опросов",
         profile: "Профиль",
         personal_account: "Личный кабинет",
         settings: "Настройки",
@@ -75,7 +75,7 @@ const resources = {
         phoneNumber: "Номер Телефона",
         language: "Предпочитаемый Язык",
         save: "Сохранить Изменения",
-        login: "Войти"
+        login: "Войти",
       },
     },
   },

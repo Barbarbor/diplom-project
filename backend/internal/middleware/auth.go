@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"backend/pkg/jwt"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -13,8 +12,8 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Попробуем получить токен из заголовка Authorization
 		authHeader := c.GetHeader("Authorization")
-		var token string
 
+		var token string
 		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
 			token = strings.TrimPrefix(authHeader, "Bearer ")
 		} else {
@@ -22,18 +21,16 @@ func AuthMiddleware() gin.HandlerFunc {
 			var err error
 			token, err = c.Cookie("auth_token")
 			if err != nil {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authentication token not found"})
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 				return
 			}
 		}
-		fmt.Print("token ", token)
 		// Проверяем токен
 		claims, err := jwt.ValidateToken(token)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			return
 		}
-
 		// Сохраняем данные пользователя в контексте запроса
 		c.Set("user_id", claims.UserID)
 		c.Next()
