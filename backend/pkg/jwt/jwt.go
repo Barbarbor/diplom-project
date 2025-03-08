@@ -1,13 +1,14 @@
-package utils
+package jwt
 
 import (
+	"backend/internal/config"
 	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
 
-var secretKey = []byte("your-secret-key") // Секретный ключ для подписи токена
+var secretKey = []byte(config.JwtSecretKey)
 
 // Claims структура для хранения данных токена
 type Claims struct {
@@ -22,7 +23,7 @@ func GenerateToken(userID int, email string) (string, error) {
 		UserID: userID,
 		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // Токен действителен 24 часа
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)), // Токен действителен 24 часа
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}

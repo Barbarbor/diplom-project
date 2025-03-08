@@ -11,6 +11,8 @@ type Config struct {
 	ServerPort  string
 }
 
+var JwtSecretKey = os.Getenv("JWT_SECRET_KEY")
+
 func LoadConfig() Config {
 
 	// Возвращаем конфигурацию

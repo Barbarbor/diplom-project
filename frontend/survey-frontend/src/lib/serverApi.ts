@@ -1,4 +1,5 @@
-// lib/api.ts
+"use server";
+import { cookies } from "next/headers";
 
 type ApiRequestParams = {
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -9,19 +10,18 @@ type ApiRequestParams = {
   data?: Record<string, any>;
   cache?: {
     disabled?: boolean;
-    revalidateTime?: number;
-    tags?: string[];
+    revalidateTime?: number; // Время в секундах
+    tags?: string[]; // Реалидационные теги
   };
 };
 
-type ApiResponse<T = unknown> = {
+export type ApiResponse<T = unknown> = {
   data?: T;
   error?: string;
   headers?: Headers;
   status: number;
 };
-
-const request = async <T = unknown>({
+const serverRequest = async <T = unknown>({
   method,
   url,
   disableAuthCookie = false,
@@ -34,44 +34,45 @@ const request = async <T = unknown>({
     "Content-Type": "application/json",
   };
 
-  // Если не нужно отключать использование куки, пробуем их использовать.
   if (!disableAuthCookie) {
-    const authToken = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("auth_token="))
-      ?.split("=")[1];
-
-    if (authToken) {
-      headers["Authorization"] = `Bearer ${authToken}`;
-    } else {
+    const cookieStore = await cookies();
+    const authToken = cookieStore.get("auth_token")?.value;
+    if (!authToken) {
       return {
         error: "Unauthorized",
         status: 401,
       };
     }
+
+    headers["Authorization"] = `Bearer ${authToken}`;
+    headers["Cookie"] = `auth_token=${authToken}`;
   }
 
   const fetchOptions: RequestInit = {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include", // Включаем автоматическую передачу куки
+    credentials: "include",
     cache: cache.disabled ? "no-store" : "force-cache",
+    next: {
+      revalidate: cache.revalidateTime ?? undefined,
+      tags: cache.tags ?? undefined,
+    },
   };
 
   const response = await fetch(fullUrl, fetchOptions);
+  const responseData = await response.json();
 
   if (!response.ok) {
-    const responseBody = await response.json();
-    return { error: responseBody.error, status: response.status };
+    const responseError = responseData.error;
+    return { error: responseError, status: response.status };
   }
 
-  const responseData = await response.json();
   return {
-    data: responseData as T,
+    data: responseData,
     status: response.status,
     headers: response.headers,
   };
 };
 
-export default request;
+export default serverRequest;
