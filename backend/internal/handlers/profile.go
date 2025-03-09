@@ -11,11 +11,11 @@ import (
 
 // ProfileHandler структурирует обработку запросов для профилей.
 type ProfileHandler struct {
-	profileService profile.ProfileService
+	profileService *profile.ProfileService
 }
 
 // NewProfileHandler создаёт новый обработчик профилей.
-func NewProfileHandler(profileService profile.ProfileService) *ProfileHandler {
+func NewProfileHandler(profileService *profile.ProfileService) *ProfileHandler {
 	return &ProfileHandler{profileService: profileService}
 }
 

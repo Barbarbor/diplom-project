@@ -9,13 +9,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// AuthRepository определяет методы для работы с пользователями.
-type AuthRepository interface {
-	CreateUser(email, password string) (int, error)
-	GetUserByEmail(email string) (*models.User, error)
-	GetUserByID(userID int) (*models.User, error)
-}
-
 type authRepository struct {
 	db *sqlx.DB
 }

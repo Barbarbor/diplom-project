@@ -1,9 +1,14 @@
 package main
 
 import (
+	"backend/internal/api"
 	"backend/internal/config"
 	"backend/internal/db"
-	"backend/internal/handlers"
+	handlers "backend/internal/handlers"
+	"backend/internal/repositories"
+	auth "backend/internal/services/auth_service"
+	profile "backend/internal/services/profile_service"
+	survey "backend/internal/services/survey_service"
 	"log"
 	"time"
 
@@ -20,6 +25,21 @@ func main() {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 
+	// Инициализация репозиториев
+	authRepo := repositories.NewAuthRepository(database)
+	profileRepo := repositories.NewProfileRepository(database)
+	surveyRepo := repositories.NewSurveyRepository(database)
+
+	// Инициализация сервисов
+	authService := auth.NewAuthService(authRepo)
+	profileService := profile.NewProfileService(profileRepo)
+	surveyService := survey.NewSurveyService(surveyRepo)
+
+	// Инициализация хэндлеров
+	authHandler := handlers.NewAuthHandler(authService)
+	profileHandler := handlers.NewProfileHandler(profileService)
+	surveyHandler := handlers.NewSurveyHandler(surveyService)
+
 	// Инициализация роутера
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
@@ -30,7 +50,7 @@ func main() {
 		MaxAge:           24 * time.Hour,
 	}))
 	// Регистрация маршрутов
-	handlers.RegisterRoutes(router, database)
+	api.RegisterRoutes(router, authHandler, profileHandler, surveyHandler)
 
 	// Запуск сервера
 	log.Printf("Starting server on %s", cfg.ServerPort)

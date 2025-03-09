@@ -8,21 +8,16 @@ import (
 )
 
 // ProfileService определяет бизнес-логику для профилей.
-type ProfileService interface {
-	GetUserProfile(ctx context.Context, userID int) (*models.UserProfile, error)
-	UpdateUserProfile(ctx context.Context, profile *models.UserProfile) error
-}
-
-type profileService struct {
+type ProfileService struct {
 	repo repositories.ProfileRepository
 }
 
 // NewProfileService создаёт новый сервис профилей.
-func NewProfileService(repo repositories.ProfileRepository) ProfileService {
-	return &profileService{repo: repo}
+func NewProfileService(repo repositories.ProfileRepository) *ProfileService {
+	return &ProfileService{repo: repo}
 }
 
-func (s *profileService) GetUserProfile(ctx context.Context, userID int) (*models.UserProfile, error) {
+func (s *ProfileService) GetUserProfile(ctx context.Context, userID int) (*models.UserProfile, error) {
 	profile, err := s.repo.GetUserProfile(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user profile: %w", err)
@@ -30,7 +25,7 @@ func (s *profileService) GetUserProfile(ctx context.Context, userID int) (*model
 	return profile, nil
 }
 
-func (s *profileService) UpdateUserProfile(ctx context.Context, profile *models.UserProfile) error {
+func (s *ProfileService) UpdateUserProfile(ctx context.Context, profile *models.UserProfile) error {
 	if err := s.repo.UpdateUserProfile(profile); err != nil {
 		return fmt.Errorf("failed to update user profile: %w", err)
 	}

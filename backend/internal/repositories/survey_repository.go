@@ -8,12 +8,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// SurveyRepository определяет методы для работы с опросами в БД.
-type SurveyRepository interface {
-	CreateSurvey(title string, authorID int, hash string, state models.SurveyState, now time.Time) (int, error)
-	GetSurveyByHash(hash string) (*models.Survey, string, error)
-}
-
 type surveyRepository struct {
 	db *sqlx.DB
 }

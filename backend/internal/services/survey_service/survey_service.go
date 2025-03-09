@@ -1,4 +1,4 @@
-package services
+package survey
 
 import (
 	"backend/internal/models"
@@ -10,18 +10,13 @@ import (
 )
 
 // SurveyService определяет бизнес-логику для опросов.
-type SurveyService interface {
-	CreateSurvey(authorID int) (*models.Survey, error)
-	GetSurveyByHash(hash string) (*models.SurveyWithCreator, error)
-}
-
-type surveyService struct {
+type SurveyService struct {
 	surveyRepo repositories.SurveyRepository
 }
 
 // NewSurveyService создаёт новый экземпляр сервиса, внедряя репозиторий.
-func NewSurveyService(repo repositories.SurveyRepository) SurveyService {
-	return &surveyService{
+func NewSurveyService(repo repositories.SurveyRepository) *SurveyService {
+	return &SurveyService{
 		surveyRepo: repo,
 	}
 }
@@ -40,7 +35,7 @@ func GenerateRandomHash(n int) (string, error) {
 	return string(hash), nil
 }
 
-func (s *surveyService) CreateSurvey(authorID int) (*models.Survey, error) {
+func (s *SurveyService) CreateSurvey(authorID int) (*models.Survey, error) {
 	now := time.Now()
 	title := fmt.Sprintf("Опрос от %s", now.Format("02.01.2006"))
 	hash, err := GenerateRandomHash(15)
@@ -66,7 +61,7 @@ func (s *surveyService) CreateSurvey(authorID int) (*models.Survey, error) {
 	return survey, nil
 }
 
-func (s *surveyService) GetSurveyByHash(hash string) (*models.SurveyWithCreator, error) {
+func (s *SurveyService) GetSurveyByHash(hash string) (*models.SurveyWithCreator, error) {
 	survey, email, err := s.surveyRepo.GetSurveyByHash(hash)
 	if err != nil {
 		return nil, err

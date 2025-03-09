@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	services "backend/internal/services/survey_service"
+	survey "backend/internal/services/survey_service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,11 +9,11 @@ import (
 
 // SurveyHandler структурирует обработку запросов для опросов.
 type SurveyHandler struct {
-	surveyService services.SurveyService
+	surveyService *survey.SurveyService
 }
 
 // NewSurveyHandler создаёт новый обработчик опросов.
-func NewSurveyHandler(surveyService services.SurveyService) *SurveyHandler {
+func NewSurveyHandler(surveyService *survey.SurveyService) *SurveyHandler {
 	return &SurveyHandler{
 		surveyService: surveyService,
 	}

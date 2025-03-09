@@ -7,12 +7,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// ProfileRepository определяет методы для работы с профилем пользователя.
-type ProfileRepository interface {
-	GetUserProfile(userID int) (*models.UserProfile, error)
-	UpdateUserProfile(profile *models.UserProfile) error
-}
-
 type profileRepository struct {
 	db *sqlx.DB
 }
