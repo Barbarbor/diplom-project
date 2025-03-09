@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"backend/internal/models"
+	"backend/internal/domain"
 	"fmt"
 	"time"
 
@@ -17,7 +17,7 @@ func NewSurveyRepository(db *sqlx.DB) SurveyRepository {
 	return &surveyRepository{db: db}
 }
 
-func (r *surveyRepository) CreateSurvey(title string, authorID int, hash string, state models.SurveyState, now time.Time) (int, error) {
+func (r *surveyRepository) CreateSurvey(title string, authorID int, hash string, state domain.SurveyState, now time.Time) (int, error) {
 	var surveyID int
 	query := `
 		INSERT INTO surveys (title, author_id, hash, state, created_at, updated_at)
@@ -28,8 +28,8 @@ func (r *surveyRepository) CreateSurvey(title string, authorID int, hash string,
 	return surveyID, nil
 }
 
-func (r *surveyRepository) GetSurveyByHash(hash string) (*models.Survey, string, error) {
-	var survey models.Survey
+func (r *surveyRepository) GetSurveyByHash(hash string) (*domain.Survey, string, error) {
+	var survey domain.Survey
 	var email string
 	query := `
 		SELECT s.id, s.title, s.created_at, s.updated_at, s.hash, s.state, u.email

@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"backend/internal/models"
+	"backend/internal/domain"
 	"backend/internal/repositories"
 	"fmt"
 
@@ -38,6 +38,6 @@ func (s *AuthService) AuthenticateUser(email, password string) (string, error) {
 	return jwt.GenerateToken(user.ID, user.Email)
 }
 
-func (s *AuthService) GetUser(userID int) (*models.User, error) {
+func (s *AuthService) GetUser(userID int) (*domain.User, error) {
 	return s.repo.GetUserByID(userID)
 }

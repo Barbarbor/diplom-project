@@ -1,7 +1,7 @@
 package profile
 
 import (
-	"backend/internal/models"
+	models "backend/internal/domain"
 	"backend/internal/repositories"
 	"context"
 	"fmt"

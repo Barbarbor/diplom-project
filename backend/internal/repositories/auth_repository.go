@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"backend/internal/models"
+	"backend/internal/domain"
 	"database/sql"
 	"fmt"
 
@@ -44,8 +44,8 @@ func (r *authRepository) CreateUser(email, password string) (int, error) {
 	return userID, nil
 }
 
-func (r *authRepository) GetUserByEmail(email string) (*models.User, error) {
-	var user models.User
+func (r *authRepository) GetUserByEmail(email string) (*domain.User, error) {
+	var user domain.User
 	query := "SELECT * FROM users WHERE email = $1"
 	if err := r.db.Get(&user, query, email); err != nil {
 		if err == sql.ErrNoRows {
@@ -56,8 +56,8 @@ func (r *authRepository) GetUserByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func (r *authRepository) GetUserByID(userID int) (*models.User, error) {
-	var user models.User
+func (r *authRepository) GetUserByID(userID int) (*domain.User, error) {
+	var user domain.User
 	query := "SELECT * FROM users WHERE id = $1"
 	if err := r.db.Get(&user, query, userID); err != nil {
 		if err == sql.ErrNoRows {

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"backend/internal/models"
+	models "backend/internal/domain"
 	profile "backend/internal/services/profile_service"
 	"net/http"
 	"strconv"

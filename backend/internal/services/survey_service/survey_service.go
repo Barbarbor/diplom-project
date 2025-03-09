@@ -1,7 +1,7 @@
 package survey
 
 import (
-	"backend/internal/models"
+	models "backend/internal/domain"
 	"backend/internal/repositories"
 	"crypto/rand"
 	"fmt"
