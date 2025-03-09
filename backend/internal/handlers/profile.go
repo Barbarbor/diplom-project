@@ -2,61 +2,62 @@ package handlers
 
 import (
 	"backend/internal/models"
-	"backend/pkg/profile"
+	profile "backend/internal/services/profile_service"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
 )
 
-// GetProfileHandler получает профиль пользователя
-func GetProfileHandler(db *sqlx.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Пример получения идентификатора пользователя из токена
-		userIDStr := c.GetString("userID")
-		userID, err := strconv.Atoi(userIDStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid userID"})
-			return
-		}
-
-		ctx := c.Request.Context()
-		userProfile, err := profile.GetUserProfile(ctx, db, userID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"profile": userProfile})
-	}
+// ProfileHandler структурирует обработку запросов для профилей.
+type ProfileHandler struct {
+	profileService profile.ProfileService
 }
 
-// UpdateProfileHandler обновляет профиль пользователя
-func UpdateProfileHandler(db *sqlx.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var userProfile models.UserProfile
-		if err := c.ShouldBindJSON(&userProfile); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+// NewProfileHandler создаёт новый обработчик профилей.
+func NewProfileHandler(profileService profile.ProfileService) *ProfileHandler {
+	return &ProfileHandler{profileService: profileService}
+}
 
-		// Пример получения идентификатора пользователя из токена
-		userIDStr := c.GetString("userID")
-		userID, err := strconv.Atoi(userIDStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid userID"})
-			return
-		}
-		userProfile.UserID = userID
-
-		ctx := c.Request.Context()
-		err = profile.UpdateUserProfile(ctx, db, &userProfile)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
+// GetProfile возвращает профиль пользователя.
+func (h *ProfileHandler) GetProfile(c *gin.Context) {
+	// Извлекаем user_id из контекста (например, middleware установил его)
+	userIDStr := c.GetString("user_id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
+		return
 	}
+
+	profile, err := h.profileService.GetUserProfile(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"profile": profile})
+}
+
+// UpdateProfile обновляет профиль пользователя.
+func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
+	var updatedProfile models.UserProfile
+	if err := c.ShouldBindJSON(&updatedProfile); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userIDStr := c.GetString("user_id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
+		return
+	}
+	updatedProfile.UserID = userID
+
+	if err := h.profileService.UpdateUserProfile(c.Request.Context(), &updatedProfile); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
 }

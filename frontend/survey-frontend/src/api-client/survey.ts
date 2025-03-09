@@ -4,7 +4,7 @@ import { GetSurveyResponse } from "@/types/survey";
 
 // Функция для создания опроса (POST /api/surveys)
 export const createSurvey = async () => {
-  const response = await request({
+  const response = await request<{hash:string}>({
     method: "POST",
     prefix: "/api",
     url: "/surveys",

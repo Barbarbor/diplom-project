@@ -43,6 +43,12 @@ type Survey struct {
 	State     SurveyState `json:"state" db:"state"` // Новое поле
 }
 
+// SurveyWithCreator объединяет опрос с email создателя.
+type SurveyWithCreator struct {
+	Survey       *Survey `json:"survey"`
+	CreatorEmail string  `json:"creator"`
+}
+
 // Вопросы опросов
 type SurveyQuestion struct {
 	ID       int          `json:"id" db:"id"`
