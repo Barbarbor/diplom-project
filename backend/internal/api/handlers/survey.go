@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	survey "backend/internal/services/survey_service"

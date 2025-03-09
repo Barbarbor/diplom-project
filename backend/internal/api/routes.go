@@ -1,12 +1,13 @@
 package api
 
 import (
+	"backend/internal/api/handlers"
 	"backend/internal/api/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(router *gin.Engine, authHandler *AuthHandler, profileHandler *ProfileHandler, surveyHandler *SurveyHandler) {
+func RegisterRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, profileHandler *handlers.ProfileHandler, surveyHandler *handlers.SurveyHandler) {
 	api := router.Group("/api")
 	{
 		// Authorization routes

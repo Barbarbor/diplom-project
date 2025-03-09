@@ -2,9 +2,9 @@ package main
 
 import (
 	api "backend/internal/api"
+	"backend/internal/api/handlers"
 	"backend/internal/config"
 	"backend/internal/db"
-
 	"backend/internal/repositories"
 	auth "backend/internal/services/auth_service"
 	profile "backend/internal/services/profile_service"
@@ -36,9 +36,9 @@ func main() {
 	surveyService := survey.NewSurveyService(surveyRepo)
 
 	// Инициализация хэндлеров
-	authHandler := api.NewAuthHandler(authService)
-	profileHandler := api.NewProfileHandler(profileService)
-	surveyHandler := api.NewSurveyHandler(surveyService)
+	authHandler := handlers.NewAuthHandler(authService)
+	profileHandler := handlers.NewProfileHandler(profileService)
+	surveyHandler := handlers.NewSurveyHandler(surveyService)
 
 	// Инициализация роутера
 	router := gin.Default()

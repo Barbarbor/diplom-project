@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	auth "backend/internal/services/auth_service"
