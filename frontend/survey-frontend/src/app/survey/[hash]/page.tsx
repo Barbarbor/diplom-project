@@ -34,6 +34,9 @@ export default async function SurveyPage({ params }: SurveyPageProps) {
         <p className="text-gray-700">
           <span className="font-semibold">Creator:</span> {survey.creator}
         </p>
+        <p className="text-gray-700">
+          <span className="font-semibold">State:</span> {survey.state}
+        </p>
       </div>
       {/* Здесь можно добавить дополнительное отображение данных опроса, например вопросы */}
     </div>

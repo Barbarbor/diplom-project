@@ -1,6 +1,11 @@
 package domain
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var ErrInvalidQuestionType = errors.New("invalid question type")
 
 type SurveyState string
 
@@ -47,6 +52,15 @@ type Survey struct {
 type SurveyWithCreator struct {
 	Survey       *Survey `json:"survey"`
 	CreatorEmail string  `json:"creator"`
+}
+
+// SurveySummary представляет краткую информацию об опросе.
+type SurveySummary struct {
+	Title     string      `json:"title" db:"title"`
+	CreatedAt time.Time   `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time   `json:"updated_at" db:"updated_at"`
+	Hash      string      `json:"hash" db:"hash"`
+	State     SurveyState `json:"state" db:"state"`
 }
 
 // Вопросы опросов

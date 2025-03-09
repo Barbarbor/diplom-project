@@ -49,3 +49,26 @@ func (r *surveyRepository) GetSurveyByHash(hash string) (*domain.Survey, string,
 	}
 	return &survey, email, nil
 }
+
+func (r *surveyRepository) CheckUserAccess(userID int, surveyID int) (bool, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM surveys WHERE id = $1 AND author_id = $2`
+	err := r.db.QueryRow(query, surveyID, userID).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check user access: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (r *surveyRepository) GetSurveysByAuthor(authorID int) ([]*domain.SurveySummary, error) {
+	var summaries []*domain.SurveySummary
+	query := `
+		SELECT title, created_at, updated_at, hash, state
+		FROM surveys
+		WHERE author_id = $1
+		ORDER BY created_at DESC`
+	if err := r.db.Select(&summaries, query, authorID); err != nil {
+		return nil, fmt.Errorf("failed to fetch surveys: %w", err)
+	}
+	return summaries, nil
+}

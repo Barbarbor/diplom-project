@@ -22,4 +22,11 @@ type ProfileRepository interface {
 type SurveyRepository interface {
 	CreateSurvey(title string, authorID int, hash string, state domain.SurveyState, now time.Time) (int, error)
 	GetSurveyByHash(hash string) (*domain.Survey, string, error)
+	CheckUserAccess(userID int, surveyID int) (bool, error)           // Добавляем этот метод
+	GetSurveysByAuthor(authorID int) ([]*domain.SurveySummary, error) // Новый метод
+}
+
+// QuestionRepository определяет методы для работы с вопросами в БД
+type QuestionRepository interface {
+	CreateQuestion(question *domain.SurveyQuestion) error
 }

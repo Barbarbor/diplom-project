@@ -1,7 +1,7 @@
 package survey
 
 import (
-	models "backend/internal/domain"
+	"backend/internal/domain"
 	"backend/internal/repositories"
 	"crypto/rand"
 	"fmt"
@@ -35,21 +35,21 @@ func GenerateRandomHash(n int) (string, error) {
 	return string(hash), nil
 }
 
-func (s *SurveyService) CreateSurvey(authorID int) (*models.Survey, error) {
+func (s *SurveyService) CreateSurvey(authorID int) (*domain.Survey, error) {
 	now := time.Now()
 	title := fmt.Sprintf("Опрос от %s", now.Format("02.01.2006"))
 	hash, err := GenerateRandomHash(15)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate survey hash: %w", err)
 	}
-	state := models.SurveyStateDraft
+	state := domain.SurveyStateDraft
 
 	surveyID, err := s.surveyRepo.CreateSurvey(title, authorID, hash, state, now)
 	if err != nil {
 		return nil, err
 	}
 
-	survey := &models.Survey{
+	survey := &domain.Survey{
 		ID:        surveyID,
 		Title:     title,
 		AuthorID:  authorID,
@@ -61,14 +61,18 @@ func (s *SurveyService) CreateSurvey(authorID int) (*models.Survey, error) {
 	return survey, nil
 }
 
-func (s *SurveyService) GetSurveyByHash(hash string) (*models.SurveyWithCreator, error) {
+func (s *SurveyService) GetSurveyByHash(hash string) (*domain.SurveyWithCreator, error) {
 	survey, email, err := s.surveyRepo.GetSurveyByHash(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return &models.SurveyWithCreator{
+	return &domain.SurveyWithCreator{
 		Survey:       survey,
 		CreatorEmail: email,
 	}, nil
+}
+
+func (s *SurveyService) GetSurveysByAuthor(authorID int) ([]*domain.SurveySummary, error) {
+	return s.surveyRepo.GetSurveysByAuthor(authorID)
 }
