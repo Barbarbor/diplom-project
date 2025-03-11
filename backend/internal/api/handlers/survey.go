@@ -42,22 +42,30 @@ func (h *SurveyHandler) CreateSurvey(c *gin.Context) {
 		"hash":    survey.Hash,
 	})
 }
-
-// GetSurvey возвращает опрос по hash и добавляет поле creator (user_email) из контекста.
 func (h *SurveyHandler) GetSurvey(c *gin.Context) {
-	// Получаем данные опроса, установленные middleware
-	surveyData, _ := c.Get("survey")
-
+	// Извлекаем опрос из контекста, установленный middleware
+	surveyData, exists := c.Get("survey")
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Survey not found in context"})
+		return
+	}
 	survey, ok := surveyData.(*domain.Survey)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid survey data"})
 		return
 	}
 
-	// Получаем email создателя из контекста
+	// Если middleware уже установила email автора (например, "surveyAuthor")
 	creator, exists := c.Get("surveyAuthor")
 	if !exists {
 		creator = "unknown"
+	}
+
+	// Получаем список вопросов для опроса
+	questions, err := h.surveyService.GetQuestionsForSurvey(survey.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch questions"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -65,8 +73,10 @@ func (h *SurveyHandler) GetSurvey(c *gin.Context) {
 			"title":      survey.Title,
 			"created_at": survey.CreatedAt,
 			"updated_at": survey.UpdatedAt,
+			"hash":       survey.Hash,
 			"state":      survey.State,
-			"creator":    creator, // email автора
+			"creator":    creator,
+			"questions":  questions,
 		},
 	})
 }

@@ -11,13 +11,21 @@ import (
 
 // SurveyService определяет бизнес-логику для опросов.
 type SurveyService struct {
-	surveyRepo repositories.SurveyRepository
+	surveyRepo   repositories.SurveyRepository
+	questionRepo repositories.QuestionRepository
+}
+
+// SurveyWithCreator объединяет опрос с email создателя.
+type SurveyWithCreator struct {
+	Survey       *domain.Survey `json:"survey"`
+	CreatorEmail string         `json:"creator"`
 }
 
 // NewSurveyService создаёт новый экземпляр сервиса, внедряя репозиторий.
-func NewSurveyService(repo repositories.SurveyRepository) *SurveyService {
+func NewSurveyService(surveyRepo repositories.SurveyRepository, questionRepo repositories.QuestionRepository) *SurveyService {
 	return &SurveyService{
-		surveyRepo: repo,
+		surveyRepo:   surveyRepo,
+		questionRepo: questionRepo,
 	}
 }
 
@@ -61,18 +69,63 @@ func (s *SurveyService) CreateSurvey(authorID int) (*domain.Survey, error) {
 	return survey, nil
 }
 
-func (s *SurveyService) GetSurveyByHash(hash string) (*domain.SurveyWithCreator, error) {
+func (s *SurveyService) GetSurveyByHash(hash string) (*SurveyWithCreator, error) {
 	survey, email, err := s.surveyRepo.GetSurveyByHash(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return &domain.SurveyWithCreator{
+	return &SurveyWithCreator{
 		Survey:       survey,
 		CreatorEmail: email,
 	}, nil
 }
 
+// GetQuestionsForSurvey получает «сырые» данные из репозитория и группирует их в срез вопросов.
+func (s *SurveyService) GetQuestionsForSurvey(surveyID int) ([]*domain.SurveyQuestion, error) {
+	rows, err := s.questionRepo.GetQuestionOptionRows(surveyID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Группировка по вопросу.
+	questionsMap := make(map[int]*domain.SurveyQuestion)
+	var questions []*domain.SurveyQuestion
+
+	// Если у вопроса тип поддерживает опции, они заполняются; иначе оставляем пустым.
+	for _, row := range rows {
+		q, exists := questionsMap[row.QID]
+		if !exists {
+			q = &domain.SurveyQuestion{
+				ID:            row.QID,
+				SurveyID:      row.QSurveyID,
+				Label:         row.QLabel,
+				Type:          domain.QuestionType(row.QType),
+				QuestionOrder: row.QOrder,
+				// Поле Options помечено как транзитное (db:"-")
+				Options: []domain.Option{},
+			}
+			questionsMap[row.QID] = q
+			questions = append(questions, q)
+		}
+
+		// Заполняем опции только для типов, где опции имеют смысл.
+		if (q.Type == domain.SingleChoice || q.Type == domain.MultiChoice) && row.OptionID.Valid {
+			option := domain.Option{
+				ID:         int(row.OptionID.Int64),
+				QuestionID: int(row.OptionQuestionID.Int64),
+				Label:      row.OptionLabel.String,
+				CreatedAt:  row.OptionCreatedAt.Time,
+				UpdatedAt:  row.OptionUpdatedAt.Time,
+			}
+			q.Options = append(q.Options, option)
+		}
+	}
+
+	// Если требуется параллелизация обработки (но в данном случае она уже достаточно быстрая),
+	// можно обернуть логику группировки в горутины. Но здесь она проходит последовательно.
+	return questions, nil
+}
 func (s *SurveyService) GetSurveysByAuthor(authorID int) ([]*domain.SurveySummary, error) {
 	return s.surveyRepo.GetSurveysByAuthor(authorID)
 }

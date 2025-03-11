@@ -45,13 +45,7 @@ type Survey struct {
 	CreatedAt time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time   `json:"updated_at" db:"updated_at"`
 	Hash      string      `json:"hash" db:"hash"`
-	State     SurveyState `json:"state" db:"state"` // Новое поле
-}
-
-// SurveyWithCreator объединяет опрос с email создателя.
-type SurveyWithCreator struct {
-	Survey       *Survey `json:"survey"`
-	CreatorEmail string  `json:"creator"`
+	State     SurveyState `json:"state" db:"state"`
 }
 
 // SurveySummary представляет краткую информацию об опросе.
@@ -63,19 +57,24 @@ type SurveySummary struct {
 	State     SurveyState `json:"state" db:"state"`
 }
 
-// Вопросы опросов
+// SurveyQuestion представляет вопрос опроса.
+// Теперь добавляем поле QuestionOrder и удаляем Options.
 type SurveyQuestion struct {
-	ID       int          `json:"id" db:"id"`
-	SurveyID int          `json:"survey_id" db:"survey_id"`
-	Label    string       `json:"label" db:"label"`
-	Type     QuestionType `json:"type" db:"type"`       // Используем строгий тип
-	Options  []Option     `json:"options" db:"options"` // JSON массив с опциями
+	ID            int          `json:"id" db:"id"`
+	SurveyID      int          `json:"survey_id" db:"survey_id"`
+	Label         string       `json:"label" db:"label"`
+	Type          QuestionType `json:"type" db:"type"`
+	QuestionOrder int          `json:"order" db:"question_order"`
+	Options       []Option     `json:"options,omitempty" db:"-"`
 }
 
-// Опции вопроса
+// Option представляет опцию вопроса, которая хранится в таблице survey_options_choice.
 type Option struct {
-	ID    int    `json:"id"`
-	Label string `json:"label"`
+	ID         int       `json:"id" db:"id"`
+	QuestionID int       `json:"question_id" db:"question_id"`
+	Label      string    `json:"label" db:"label"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // Прохождения опросов
@@ -83,7 +82,7 @@ type SurveyInterview struct {
 	ID        int          `json:"id" db:"id"`
 	UserID    int          `json:"user_id" db:"user_id"`
 	SurveyID  int          `json:"survey_id" db:"survey_id"`
-	Status    SurveyStatus `json:"status" db:"status"` // Используем строгий тип
+	Status    SurveyStatus `json:"status" db:"status"`
 	StartTime time.Time    `json:"start_time" db:"start_time"`
 	EndTime   *time.Time   `json:"end_time,omitempty" db:"end_time"`
 }
@@ -93,7 +92,7 @@ type SurveyAnswer struct {
 	ID          int   `json:"id" db:"id"`
 	InterviewID int   `json:"interview_id" db:"interview_id"`
 	QuestionID  int   `json:"question_id" db:"question_id"`
-	Options     []int `json:"options" db:"options"` // Массив выбранных ID опций
+	Options     []int `json:"options" db:"options"` // транзитное поле, его может не быть, если вопрос не подразумевает наличие опций
 }
 
 // Статистика опросов
@@ -109,15 +108,15 @@ type SurveyRole struct {
 	ID       int      `json:"id" db:"id"`
 	SurveyID int      `json:"survey_id" db:"survey_id"`
 	UserID   int      `json:"user_id" db:"user_id"`
-	Roles    []string `json:"roles" db:"roles"` // Массив строк для ролей
+	Roles    []string `json:"roles" db:"roles"`
 }
 
 // Действия с опросами
 type SurveyActionLog struct {
 	ID         int          `json:"id" db:"id"`
-	Action     SurveyAction `json:"action" db:"action"`                 // Используем строгий тип
-	SurveyID   *int         `json:"survey_id,omitempty" db:"survey_id"` // Может быть null
-	UserID     *int         `json:"user_id,omitempty" db:"user_id"`     // Может быть null
-	Body       interface{}  `json:"body,omitempty" db:"body"`           // JSON с изменениями
+	Action     SurveyAction `json:"action" db:"action"`
+	SurveyID   *int         `json:"survey_id,omitempty" db:"survey_id"`
+	UserID     *int         `json:"user_id,omitempty" db:"user_id"`
+	Body       interface{}  `json:"body,omitempty" db:"body"`
 	ActionTime time.Time    `json:"action_time" db:"action_time"`
 }

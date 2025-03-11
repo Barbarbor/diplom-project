@@ -36,7 +36,7 @@ func main() {
 	// Инициализация сервисов
 	authService := auth.NewAuthService(authRepo)
 	profileService := profile.NewProfileService(profileRepo)
-	surveyService := survey.NewSurveyService(surveyRepo)
+	surveyService := survey.NewSurveyService(surveyRepo, questionRepo)
 	questionService := question.NewQuestionService(questionRepo)
 
 	// Инициализация хэндлеров

@@ -19,9 +19,8 @@ func NewQuestionService(repo repositories.QuestionRepository) *QuestionService {
 func (s *QuestionService) CreateQuestion(surveyID int, questionType domain.QuestionType) (*domain.SurveyQuestion, error) {
 	// Предопределённые параметры для типов вопросов
 	defaultQuestions := map[domain.QuestionType]*domain.SurveyQuestion{
-		domain.SingleChoice: {Label: "Выберите один вариант", Type: domain.SingleChoice, Options: []domain.Option{{ID: 1, Label: "Вариант 1"}, {ID: 2, Label: "Вариант 2"}}},
-		domain.MultiChoice:  {Label: "Выберите несколько вариантов", Type: domain.MultiChoice, Options: []domain.Option{{ID: 1, Label: "Вариант A"}, {ID: 2, Label: "Вариант B"}}},
-	}
+		domain.SingleChoice: {Label: "Выберите один вариант", Type: domain.SingleChoice},
+		domain.MultiChoice:  {Label: "Выберите несколько вариантов", Type: domain.MultiChoice}}
 
 	question, exists := defaultQuestions[questionType]
 	if !exists {

@@ -29,4 +29,7 @@ type SurveyRepository interface {
 // QuestionRepository определяет методы для работы с вопросами в БД
 type QuestionRepository interface {
 	CreateQuestion(question *domain.SurveyQuestion) error
+	GetQuestionsBySurveyID(surveyID int) ([]*domain.SurveyQuestion, error)
+	GetOptionsByQuestionID(questionID int) ([]domain.Option, error)
+	GetQuestionOptionRows(surveyID int) ([]QuestionOptionRow, error)
 }
