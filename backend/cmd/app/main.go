@@ -11,6 +11,8 @@ import (
 	profile "backend/internal/services/profile_service"
 	question "backend/internal/services/question_service"
 	survey "backend/internal/services/survey_service"
+	"backend/pkg/redisclient"
+	"fmt"
 	"log"
 	"time"
 
@@ -21,7 +23,15 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	// Подключение к базе данных
+	// Подключаем Redis
+	redisclient.Init(cfg.RedisAddr, "", 0)
+	pong, err := redisclient.Client.Ping(redisclient.Ctx).Result()
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+	fmt.Println("Redis connected:", pong)
+
+	// Подключение к PostgreSQL
 	database, err := db.Connect(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
