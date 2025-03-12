@@ -19,8 +19,6 @@ go.work
 # Configuration files
 config/config.json
 *.env
-*.yaml
-*.yml
 *.toml
 *.ini
 *.msgpack

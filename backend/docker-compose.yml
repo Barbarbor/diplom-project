@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  migrate:
+    # Используем образ, собранный из стадии builder, чтобы иметь доступ к исходникам
+    build:
+      context: .
+      target: builder
+    container_name: migrate
+    command: ["go", "run", "cmd/migrate/main.go"]
+    environment:
+      DATABASE_URL: "postgres://postgres:12345@postgres:5432/surveydb?sslmode=disable"
+    depends_on:
+      - postgres
+    networks:
+      - survey_network
+  app:
+    build:
+      context: .
+      target: runner
+    container_name: go_survey_app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: "postgres://postgres:12345@postgres:5432/surveydb?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      SERVER_PORT: ":8000"
+      JWT_SECRET_KEY: "bccd-effa-aadd-f190"
+    networks:
+      - survey_network
+
+  postgres:
+    image: postgres:15
+    container_name: survey_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: surveydb
+    ports:
+      - "5432:5432"
+    networks:
+      - survey_network
+
+  redis:
+    image: redis:latest
+    container_name: survey_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - survey_network
+    volumes:
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+networks:
+  survey_network:
+    driver: bridge
