@@ -16,9 +16,9 @@ func NewQuestionService(repo repositories.QuestionRepository) *QuestionService {
 }
 
 // CreateQuestion создаёт новый вопрос с дефолтными параметрами
-func (s *QuestionService) CreateQuestion(surveyID int, questionType domain.QuestionType) (*domain.SurveyQuestion, error) {
+func (s *QuestionService) CreateQuestion(surveyID int, questionType domain.QuestionType) (*domain.SurveyQuestionTemp, error) {
 	// Предопределённые параметры для типов вопросов
-	defaultQuestions := map[domain.QuestionType]*domain.SurveyQuestion{
+	defaultQuestions := map[domain.QuestionType]*domain.SurveyQuestionTemp{
 		domain.SingleChoice: {Label: "Выберите один вариант", Type: domain.SingleChoice},
 		domain.MultiChoice:  {Label: "Выберите несколько вариантов", Type: domain.MultiChoice}}
 
@@ -28,7 +28,8 @@ func (s *QuestionService) CreateQuestion(surveyID int, questionType domain.Quest
 	}
 
 	question.SurveyID = surveyID
-
+	question.QuestionState = "NEW"
+	question.QuestionOriginalID = nil
 	// Сохраняем в БД
 	err := s.repo.CreateQuestion(question)
 	if err != nil {

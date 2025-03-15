@@ -7,8 +7,8 @@ ALTER TABLE survey_questions
 ALTER TABLE survey_questions
   DROP COLUMN IF EXISTS options;
 
--- Создаем новую таблицу survey_options_choice для опций вопросов
-CREATE TABLE IF NOT EXISTS survey_options_choice (
+-- Создаем новую таблицу survey_options для опций вопросов
+CREATE TABLE IF NOT EXISTS survey_options (
   id SERIAL PRIMARY KEY,
   question_id INTEGER NOT NULL REFERENCES survey_questions(id) ON DELETE CASCADE,
   label TEXT NOT NULL,

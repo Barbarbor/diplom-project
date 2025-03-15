@@ -3,11 +3,8 @@ package handlers
 import (
 	"backend/internal/domain"
 	survey "backend/internal/services/survey_service"
-	"backend/pkg/redisclient"
-	"encoding/json"
-	"fmt"
+
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -66,24 +63,14 @@ func (h *SurveyHandler) GetSurvey(c *gin.Context) {
 		creator = "unknown"
 	}
 
-	// Формируем ключ для Redis. Здесь используем "survey:<id>"
-	cacheKey := fmt.Sprintf("survey:%d", survey.ID)
-
-	cachedData, err := redisclient.Client.Get(redisclient.Ctx, cacheKey).Bytes()
-	if err == nil && len(cachedData) > 0 {
-		c.Data(http.StatusOK, "application/json", cachedData)
-		return
-	}
-
-	// Если в кеше нет, получаем список вопросов из сервиса
+	// Получаем список вопросов для опроса
 	questions, err := h.surveyService.GetQuestionsForSurvey(survey.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch questions"})
 		return
 	}
 
-	// Формируем итоговый ответ
-	responseBody := gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"survey": gin.H{
 			"title":      survey.Title,
 			"created_at": survey.CreatedAt,
@@ -93,20 +80,7 @@ func (h *SurveyHandler) GetSurvey(c *gin.Context) {
 			"creator":    creator,
 			"questions":  questions,
 		},
-	}
-
-	// Сериализуем ответ в JSON
-	responseJSON, err := json.Marshal(responseBody)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal response"})
-		return
-	}
-
-	// Сохраняем данные в Redis с заданным TTL (например, 5 минут)
-	redisclient.Client.Set(redisclient.Ctx, cacheKey, responseJSON, 24*31*365*time.Hour)
-
-	// Отправляем сформированный ответ
-	c.Data(http.StatusOK, "application/json", responseJSON)
+	})
 }
 
 func (h *SurveyHandler) GetSurveys(c *gin.Context) {

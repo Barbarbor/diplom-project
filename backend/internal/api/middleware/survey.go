@@ -31,7 +31,6 @@ func SurveyAccessMiddleware(surveyRepo repositories.SurveyRepository) gin.Handle
 
 		hasAccess, err := surveyRepo.CheckUserAccess(userID.(int), survey.ID)
 
-		fmt.Print("access?", hasAccess)
 		if err != nil || !hasAccess {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 			return

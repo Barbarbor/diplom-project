@@ -2,10 +2,11 @@ package middleware
 
 import (
 	"backend/pkg/jwt"
-	"backend/pkg/redisclient"
+	// "backend/pkg/redisclient"
 	"net/http"
 	"strings"
-	"time"
+
+	// "time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,14 +28,14 @@ func AuthMiddleware() gin.HandlerFunc {
 			}
 		}
 
-		// Проверяем кэш Redis по токену
-		cacheKey := "auth_token:" + token
-		userID, err := redisclient.Client.Get(redisclient.Ctx, cacheKey).Int()
-		if err == nil { // Если нашли в кеше — используем
-			c.Set("user_id", userID)
-			c.Next()
-			return
-		}
+		// // Проверяем кэш Redis по токену
+		// cacheKey := "auth_token:" + token
+		// userID, err := redisclient.Client.Get(redisclient.Ctx, cacheKey).Int()
+		// if err == nil { // Если нашли в кеше — используем
+		// 	c.Set("user_id", userID)
+		// 	c.Next()
+		// 	return
+		// }
 
 		// Если в кеше нет, валидируем токен
 		claims, err := jwt.ValidateToken(token)
@@ -44,7 +45,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Кэшируем user_id с TTL 30 минут
-		redisclient.Client.Set(redisclient.Ctx, cacheKey, claims.UserID, 30*time.Minute)
+		// redisclient.Client.Set(redisclient.Ctx, cacheKey, claims.UserID, 30*time.Minute)
 
 		// Сохраняем user_id в контексте
 		c.Set("user_id", claims.UserID)

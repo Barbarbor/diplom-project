@@ -80,50 +80,53 @@ func (s *SurveyService) GetSurveyByHash(hash string) (*SurveyWithCreator, error)
 		CreatorEmail: email,
 	}, nil
 }
-
-// GetQuestionsForSurvey получает «сырые» данные из репозитория и группирует их в срез вопросов.
-func (s *SurveyService) GetQuestionsForSurvey(surveyID int) ([]*domain.SurveyQuestion, error) {
+func (s *SurveyService) GetQuestionsForSurvey(surveyID int) ([]*domain.SurveyQuestionTemp, error) {
+	// Получаем "сырые" строки из временной таблицы
 	rows, err := s.questionRepo.GetQuestionOptionRows(surveyID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Группировка по вопросу.
-	questionsMap := make(map[int]*domain.SurveyQuestion)
-	var questions []*domain.SurveyQuestion
+	// Группируем данные по вопросу
+	questionsMap := make(map[int]*domain.SurveyQuestionTemp)
+	var questions []*domain.SurveyQuestionTemp
 
-	// Если у вопроса тип поддерживает опции, они заполняются; иначе оставляем пустым.
 	for _, row := range rows {
 		q, exists := questionsMap[row.QID]
 		if !exists {
-			q = &domain.SurveyQuestion{
-				ID:            row.QID,
-				SurveyID:      row.QSurveyID,
-				Label:         row.QLabel,
-				Type:          domain.QuestionType(row.QType),
-				QuestionOrder: row.QOrder,
-				// Поле Options помечено как транзитное (db:"-")
-				Options: []domain.Option{},
+			q = &domain.SurveyQuestionTemp{
+				ID:                 row.QID,
+				QuestionOriginalID: row.QQuestionOriginalId,
+				SurveyID:           row.QSurveyID,
+				QuestionState:      *row.QQuestionState,
+				Label:              row.QLabel,
+				Type:               domain.QuestionType(row.QType),
+				QuestionOrder:      row.QOrder,
+				// Если нужно, можно сохранить состояние, например:
+				// QuestionState: domain.QuestionState(row.QState),
+				Options: []domain.OptionTemp{},
 			}
 			questionsMap[row.QID] = q
 			questions = append(questions, q)
 		}
 
-		// Заполняем опции только для типов, где опции имеют смысл.
+		// Если вопрос поддерживает опции и опция существует, добавляем ее
 		if (q.Type == domain.SingleChoice || q.Type == domain.MultiChoice) && row.OptionID.Valid {
-			option := domain.Option{
-				ID:         int(row.OptionID.Int64),
-				QuestionID: int(row.OptionQuestionID.Int64),
-				Label:      row.OptionLabel.String,
-				CreatedAt:  row.OptionCreatedAt.Time,
-				UpdatedAt:  row.OptionUpdatedAt.Time,
+			option := domain.OptionTemp{
+				ID:               int(row.OptionID.Int64),
+				QuestionID:       int(row.OptionQuestionID.Int64),
+				OptionOriginalID: row.OptionOriginalId,
+				OptionState:      *row.OptionState,
+				Label:            row.OptionLabel.String,
+				CreatedAt:        row.OptionCreatedAt.Time,
+				UpdatedAt:        row.OptionUpdatedAt.Time,
+				// Если требуется, можно установить состояние опции:
+				// OptionState: domain.OptionState(row.OptionState.String),
 			}
 			q.Options = append(q.Options, option)
 		}
 	}
 
-	// Если требуется параллелизация обработки (но в данном случае она уже достаточно быстрая),
-	// можно обернуть логику группировки в горутины. Но здесь она проходит последовательно.
 	return questions, nil
 }
 func (s *SurveyService) GetSurveysByAuthor(authorID int) ([]*domain.SurveySummary, error) {
