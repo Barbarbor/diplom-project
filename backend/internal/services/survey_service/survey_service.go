@@ -102,6 +102,8 @@ func (s *SurveyService) GetQuestionsForSurvey(surveyID int) ([]*domain.SurveyQue
 				Label:              row.QLabel,
 				Type:               domain.QuestionType(row.QType),
 				QuestionOrder:      row.QOrder,
+				CreatedAt:          row.QCreatedAt.Time,
+				UpdatedAt:          row.QUpdatedAt.Time,
 				// Если нужно, можно сохранить состояние, например:
 				// QuestionState: domain.QuestionState(row.QState),
 				Options: []domain.OptionTemp{},
@@ -116,6 +118,7 @@ func (s *SurveyService) GetQuestionsForSurvey(surveyID int) ([]*domain.SurveyQue
 				ID:               int(row.OptionID.Int64),
 				QuestionID:       int(row.OptionQuestionID.Int64),
 				OptionOriginalID: row.OptionOriginalId,
+				OptionOrder:      *row.OptionOrder,
 				OptionState:      *row.OptionState,
 				Label:            row.OptionLabel.String,
 				CreatedAt:        row.OptionCreatedAt.Time,

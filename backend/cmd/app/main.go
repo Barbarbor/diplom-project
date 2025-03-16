@@ -8,6 +8,7 @@ import (
 	"backend/internal/db"
 	"backend/internal/repositories"
 	auth "backend/internal/services/auth_service"
+	option "backend/internal/services/option_service"
 	profile "backend/internal/services/profile_service"
 	question "backend/internal/services/question_service"
 	survey "backend/internal/services/survey_service"
@@ -43,20 +44,24 @@ func main() {
 	profileRepo := repositories.NewProfileRepository(database)
 	surveyRepo := repositories.NewSurveyRepository(database)
 	questionRepo := repositories.NewQuestionRepository(database)
+	optionRepo := repositories.NewOptionRepository(database)
 
 	// Инициализация сервисов
 	authService := auth.NewAuthService(authRepo)
 	profileService := profile.NewProfileService(profileRepo)
 	surveyService := survey.NewSurveyService(surveyRepo, questionRepo)
 	questionService := question.NewQuestionService(questionRepo)
+	optionService := option.NewOptionService(optionRepo)
 
 	// Инициализация хэндлеров
 	authHandler := handlers.NewAuthHandler(authService)
 	profileHandler := handlers.NewProfileHandler(profileService)
 	surveyHandler := handlers.NewSurveyHandler(surveyService)
 	questionHandler := handlers.NewQuestionHandler(questionService)
+	optionHandler := handlers.NewOptionHandler(optionService)
 
 	surveyAccessMiddleware := middleware.SurveyAccessMiddleware(surveyRepo)
+	questionMiddleware := middleware.QuestionMiddleware(questionRepo)
 
 	// Инициализация роутера
 	router := gin.Default()
@@ -68,7 +73,7 @@ func main() {
 		MaxAge:           24 * time.Hour,
 	}))
 	// Регистрация маршрутов
-	api.RegisterRoutes(router, authHandler, profileHandler, surveyHandler, questionHandler, surveyAccessMiddleware)
+	api.RegisterRoutes(router, authHandler, profileHandler, surveyHandler, questionHandler, optionHandler, surveyAccessMiddleware, questionMiddleware)
 
 	// Запуск сервера
 	log.Printf("Starting server on %s", cfg.ServerPort)

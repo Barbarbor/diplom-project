@@ -7,7 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, profileHandler *handlers.ProfileHandler, surveyHandler *handlers.SurveyHandler, questionHandler *handlers.QuestionHandler, surveyAccessMiddleware gin.HandlerFunc) {
+func RegisterRoutes(
+	router *gin.Engine,
+	authHandler *handlers.AuthHandler,
+	profileHandler *handlers.ProfileHandler,
+	surveyHandler *handlers.SurveyHandler,
+	questionHandler *handlers.QuestionHandler,
+	optionHandler *handlers.OptionHandler,
+	surveyAccessMiddleware gin.HandlerFunc,
+	questionMiddleware gin.HandlerFunc) {
 	api := router.Group("/api")
 	{
 		// Authorization routes
@@ -33,7 +41,17 @@ func RegisterRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, profi
 			surveyProtected := surveyRoutes.Group("/:hash", surveyAccessMiddleware)
 			{
 				surveyProtected.GET("", surveyHandler.GetSurvey)
-				surveyProtected.POST("/question", questionHandler.CreateQuestion) // Новый маршрут
+				questionRoutes := surveyProtected.Group("/question")
+				{
+					questionRoutes.POST("", questionHandler.CreateQuestion)
+					questionProtected := questionRoutes.Group("/:questionId", questionMiddleware)
+					{
+						questionProtected.POST("/option", optionHandler.CreateOption)
+						questionProtected.PATCH("", questionHandler.UpdateQuestion)
+						questionProtected.PATCH("/type", questionHandler.UpdateQuestionType)
+						questionProtected.PATCH("/order", questionHandler.UpdateQuestionOrder)
+					}
+				}
 			}
 		}
 	}

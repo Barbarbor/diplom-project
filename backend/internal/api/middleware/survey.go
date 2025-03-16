@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"backend/internal/repositories"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +11,7 @@ import (
 func SurveyAccessMiddleware(surveyRepo repositories.SurveyRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hash := c.Param("hash")
-		fmt.Print("hash", hash)
+
 		if hash == "" {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Survey hash is required"})
 			return
@@ -20,7 +19,7 @@ func SurveyAccessMiddleware(surveyRepo repositories.SurveyRepository) gin.Handle
 
 		// Получаем опрос по хэшу
 		survey, email, err := surveyRepo.GetSurveyByHash(hash)
-		fmt.Print("survey", survey)
+
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Survey not found"})
 			return

@@ -46,11 +46,8 @@ func (h *SurveyHandler) CreateSurvey(c *gin.Context) {
 
 func (h *SurveyHandler) GetSurvey(c *gin.Context) {
 	// Извлекаем опрос из контекста, установленный middleware
-	surveyData, exists := c.Get("survey")
-	if !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Survey not found in context"})
-		return
-	}
+	surveyData, _ := c.Get("survey")
+
 	survey, ok := surveyData.(*domain.Survey)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid survey data"})
@@ -65,6 +62,7 @@ func (h *SurveyHandler) GetSurvey(c *gin.Context) {
 
 	// Получаем список вопросов для опроса
 	questions, err := h.surveyService.GetQuestionsForSurvey(survey.ID)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch questions"})
 		return

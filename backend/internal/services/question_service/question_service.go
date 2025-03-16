@@ -38,3 +38,19 @@ func (s *QuestionService) CreateQuestion(surveyID int, questionType domain.Quest
 
 	return question, nil
 }
+
+// UpdateQuestionType обновляет тип вопроса. currentState передается как параметр.
+func (s *QuestionService) UpdateQuestionType(questionID int, newType domain.QuestionType, currentState string) error {
+	return s.repo.UpdateQuestionType(questionID, newType, currentState)
+}
+
+// UpdateQuestionLabel обновляет только label вопроса.
+func (s *QuestionService) UpdateQuestion(questionID int, newLabel string) error {
+	return s.repo.UpdateQuestion(questionID, newLabel)
+}
+
+// UpdateQuestionOrder обновляет порядок вопроса.
+// Параметры currentOrder и surveyID должны быть извлечены до вызова этой функции.
+func (s *QuestionService) UpdateQuestionOrder(questionID, newOrder, currentOrder, surveyID int) error {
+	return s.repo.UpdateQuestionOrder(questionID, newOrder, currentOrder, surveyID)
+}

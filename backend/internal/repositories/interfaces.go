@@ -29,7 +29,22 @@ type SurveyRepository interface {
 // QuestionRepository определяет методы для работы с вопросами в БД
 type QuestionRepository interface {
 	CreateQuestion(question *domain.SurveyQuestionTemp) error
-	GetQuestionsBySurveyID(surveyID int) ([]*domain.SurveyQuestion, error)
-	GetOptionsByQuestionID(questionID int) ([]domain.Option, error)
+
+	GetQuestionMaxOrder(surveyID int) (int, error)
+	GetQuestionByID(questionID int) (*domain.SurveyQuestionTemp, error)
+	GetQuestionsBySurveyID(surveyID int) ([]*domain.SurveyQuestionTemp, error)
+	GetOptionsByQuestionID(questionID int) ([]domain.OptionTemp, error)
 	GetQuestionOptionRows(surveyID int) ([]QuestionOptionRow, error)
+
+	UpdateQuestion(questionID int, newLabel string) error
+	UpdateQuestionType(questionID int, newType domain.QuestionType, currentState string) error
+	UpdateQuestionOrder(questionID int, newOrder, currentOrder, surveyID int) error
+}
+
+// OptionRepository описывает операции с опциями.
+type OptionRepository interface {
+	// CreateOption создает новую опцию в таблице survey_options_temp.
+	CreateOption(option *domain.OptionTemp) error
+	// GetMaxOptionOrder возвращает максимальное значение option_order для заданного вопроса.
+	GetMaxOptionOrder(questionID int) (int, error)
 }
