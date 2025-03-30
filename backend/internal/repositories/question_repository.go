@@ -1,10 +1,11 @@
+// TODO: сделать так, чтобы при изменении у не новых вопросов состояние менялось на CHANGED
+
 package repositories
 
 import (
 	"backend/internal/domain"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -111,13 +112,14 @@ func (r *questionRepository) GetOptionsByQuestionID(questionID int) ([]domain.Op
 }
 
 // GetQuestionByID возвращает вопрос из временной таблицы по его ID.
-func (r *questionRepository) GetQuestionByID(questionID int) (*domain.SurveyQuestionTemp, error) {
+func (r *questionRepository) GetQuestionByID(questionID int, surveyID int) (*domain.SurveyQuestionTemp, error) {
 	var question domain.SurveyQuestionTemp
 	query := `
 		SELECT *
 		FROM survey_questions_temp
-		WHERE id = $1`
-	if err := r.db.Get(&question, query, questionID); err != nil {
+		WHERE id = $1
+		AND survey_id = $2`
+	if err := r.db.Get(&question, query, questionID, surveyID); err != nil {
 		return nil, fmt.Errorf("failed to get question by id: %w", err)
 	}
 	return &question, nil
@@ -239,18 +241,24 @@ func (r *questionRepository) UpdateQuestion(questionID int, newLabel string) err
 // UpdateQuestionOrder обновляет порядок вопроса в таблице survey_questions_temp.
 // Параметры currentOrder и surveyID получаются ранее (например, из контекста).
 func (r *questionRepository) UpdateQuestionOrder(questionID int, newOrder, currentOrder, surveyID int) error {
+
 	tx, err := r.db.Beginx()
 	if err != nil {
 		return err
+	}
+
+	// Получаем максимальное значение question_order (учитывая только вопросы, не удаленные)
+	maxOrder, err := r.GetQuestionMaxOrder(surveyID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if newOrder > maxOrder {
+		return fmt.Errorf("new order value can`t be more than max order value")
 	}
 	if err := updateEntityOrder(tx, QuestionTable, QuestionFKField, QuestionOrderField, QuestionStateField, questionID, newOrder, currentOrder, surveyID); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
-}
-
-// joinClauses - вспомогательная функция для объединения строк с разделителем.
-func joinClauses(clauses []string, sep string) string {
-	return fmt.Sprintf("%s", strings.Join(clauses, sep))
 }

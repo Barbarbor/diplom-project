@@ -104,7 +104,7 @@ func (h *QuestionHandler) UpdateQuestionOrder(c *gin.Context) {
 	// Извлекаем объект вопроса из контекста, который должен быть установлен QuestionMiddleware
 	questionData, _ := c.Get("question")
 
-	q, ok := questionData.(*domain.SurveyQuestion)
+	q, ok := questionData.(*domain.SurveyQuestionTemp)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid question data"})
 		return

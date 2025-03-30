@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS surveys_temp (
 CREATE TABLE IF NOT EXISTS survey_questions_temp (
     id SERIAL PRIMARY KEY,
     question_original_id INTEGER REFERENCES survey_questions(id) ON DELETE CASCADE,
-    survey_id INTEGER NOT NULL REFERENCES surveys_temp(id) ON DELETE CASCADE,
+    survey_id INTEGER NOT NULL REFERENCES surveys_temp(survey_original_id) ON DELETE CASCADE,
     label TEXT NOT NULL,
     type TEXT NOT NULL,
     question_order INTEGER NOT NULL DEFAULT 1,

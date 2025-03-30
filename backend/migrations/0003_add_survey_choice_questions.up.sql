@@ -17,5 +17,5 @@ CREATE TABLE IF NOT EXISTS survey_options (
 );
 
 -- Создаем индекс для ускорения поиска опций по question_id
-CREATE INDEX IF NOT EXISTS idx_survey_options_choice_question_id
-  ON survey_options_choice(question_id);
+CREATE INDEX IF NOT EXISTS idx_survey_options_question_id
+  ON survey_options(question_id);

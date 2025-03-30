@@ -15,6 +15,7 @@ import (
 // newOrder: новое значение порядка, которое хотят установить
 // currentOrder: текущее значение порядка (полученное из контекста)
 // fkValue: значение внешнего ключа (например, surveyID для вопросов или questionID для опций)
+// maxOrder: максимальный порядковый номер у сущности
 func updateEntityOrder(tx *sqlx.Tx, table, fkField, orderField, stateField string, entityID, newOrder, currentOrder, fkValue int) error {
 	// В зависимости от направления перемещения изменяем порядковые номера остальных записей.
 	if newOrder < currentOrder {

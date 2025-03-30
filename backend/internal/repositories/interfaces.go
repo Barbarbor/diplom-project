@@ -31,7 +31,7 @@ type QuestionRepository interface {
 	CreateQuestion(question *domain.SurveyQuestionTemp) error
 
 	GetQuestionMaxOrder(surveyID int) (int, error)
-	GetQuestionByID(questionID int) (*domain.SurveyQuestionTemp, error)
+	GetQuestionByID(questionID int, surveyID int) (*domain.SurveyQuestionTemp, error)
 	GetQuestionsBySurveyID(surveyID int) ([]*domain.SurveyQuestionTemp, error)
 	GetOptionsByQuestionID(questionID int) ([]domain.OptionTemp, error)
 	GetQuestionOptionRows(surveyID int) ([]QuestionOptionRow, error)
