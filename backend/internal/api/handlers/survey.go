@@ -3,22 +3,23 @@ package handlers
 import (
 	"backend/internal/domain"
 	survey "backend/internal/services/survey_service"
+	"backend/pkg/i18n"
 
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 )
 
 // SurveyHandler структурирует обработку запросов для опросов.
 type SurveyHandler struct {
 	surveyService *survey.SurveyService
+	db            *sqlx.DB
 }
 
 // NewSurveyHandler создаёт новый обработчик опросов.
-func NewSurveyHandler(surveyService *survey.SurveyService) *SurveyHandler {
-	return &SurveyHandler{
-		surveyService: surveyService,
-	}
+func NewSurveyHandler(surveyService *survey.SurveyService, db *sqlx.DB) *SurveyHandler {
+	return &SurveyHandler{surveyService: surveyService, db: db}
 }
 
 // CreateSurvey создает новый опрос и возвращает его hash.
@@ -50,7 +51,7 @@ func (h *SurveyHandler) GetSurvey(c *gin.Context) {
 
 	survey, ok := surveyData.(*domain.Survey)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid survey data"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": i18n.T("survey.handler.invalidData")})
 		return
 	}
 
@@ -64,7 +65,7 @@ func (h *SurveyHandler) GetSurvey(c *gin.Context) {
 	questions, err := h.surveyService.GetQuestionsForSurvey(survey.ID)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch questions"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": i18n.T("question.handler.notFound")})
 		return
 	}
 
@@ -101,4 +102,45 @@ func (h *SurveyHandler) GetSurveys(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"surveys": summaries})
+}
+
+// PATCH /api/surveys/:hash
+func (h *SurveyHandler) UpdateSurvey(c *gin.Context) {
+	var body struct {
+		Title string `json:"title"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload"})
+		return
+	}
+	surveyData, _ := c.Get("survey")
+	survey := surveyData.(*domain.Survey) // из middleware
+	if err := h.surveyService.UpdateSurvey(survey.ID, body.Title); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Survey title updated"})
+}
+
+// POST /api/surveys/:hash/publish
+func (h *SurveyHandler) PublishSurvey(c *gin.Context) {
+	surveyData, _ := c.Get("survey")
+	survey := surveyData.(*domain.Survey)
+	if err := h.surveyService.PublishSurvey(survey.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Survey published"})
+}
+
+func (h *SurveyHandler) RestoreSurvey(c *gin.Context) {
+	// hash уже прошёл через SurveyAccessMiddleware → в контексте есть "survey"
+	surveyData, _ := c.Get("survey")
+	survey := surveyData.(*domain.Survey)
+
+	if err := h.surveyService.RestoreSurvey(h.db, survey.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Survey restored successfully"})
 }

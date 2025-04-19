@@ -16,4 +16,7 @@ const (
 	// Поля состояния
 	QuestionStateField = "question_state"
 	OptionStateField   = "option_state"
+
+	OptionLabelField   = "label"
+	QuestionLabelField = "label"
 )

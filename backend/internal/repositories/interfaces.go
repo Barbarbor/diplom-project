@@ -3,6 +3,8 @@ package repositories
 import (
 	"backend/internal/domain"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // AuthRepository определяет методы для работы с пользователями
@@ -24,6 +26,9 @@ type SurveyRepository interface {
 	GetSurveyByHash(hash string) (*domain.Survey, string, error)
 	CheckUserAccess(userID int, surveyID int) (bool, error)           // Добавляем этот метод
 	GetSurveysByAuthor(authorID int) ([]*domain.SurveySummary, error) // Новый метод
+	PublishSurvey(surveyID int) error
+	UpdateSurveyTitle(surveyID int, newTitle string) error
+	RestoreSurvey(tx *sqlx.Tx, surveyID int) error
 }
 
 // QuestionRepository определяет методы для работы с вопросами в БД
@@ -39,6 +44,9 @@ type QuestionRepository interface {
 	UpdateQuestion(questionID int, newLabel string) error
 	UpdateQuestionType(questionID int, newType domain.QuestionType, currentState string) error
 	UpdateQuestionOrder(questionID int, newOrder, currentOrder, surveyID int) error
+
+	DeleteQuestion(questionID int) error
+	RestoreQuestion(questionTempID int) error
 }
 
 // OptionRepository описывает операции с опциями.
@@ -47,4 +55,8 @@ type OptionRepository interface {
 	CreateOption(option *domain.OptionTemp) error
 	// GetMaxOptionOrder возвращает максимальное значение option_order для заданного вопроса.
 	GetMaxOptionOrder(questionID int) (int, error)
+	GetOptionById(questionID, optionID int) (*domain.OptionTemp, error)
+	UpdateOptionOrder(optionID, newOrder, currentOrder, questionID int) error
+	UpdateOptionLabel(optionID int, newLabel string) error
+	DeleteOption(optionID int) error
 }

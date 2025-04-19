@@ -15,8 +15,9 @@ func RegisterRoutes(
 	questionHandler *handlers.QuestionHandler,
 	optionHandler *handlers.OptionHandler,
 	surveyAccessMiddleware gin.HandlerFunc,
-	questionMiddleware gin.HandlerFunc) {
-	api := router.Group("/api")
+	questionMiddleware gin.HandlerFunc,
+	optionMiddleware gin.HandlerFunc) {
+	api := router.Group("/api", middleware.I18nMiddleware())
 	{
 		// Authorization routes
 		authRoutes := api.Group("/auth")
@@ -41,6 +42,9 @@ func RegisterRoutes(
 			surveyProtected := surveyRoutes.Group("/:hash", surveyAccessMiddleware)
 			{
 				surveyProtected.GET("", surveyHandler.GetSurvey)
+				surveyProtected.PATCH("", surveyHandler.UpdateSurvey)
+				surveyProtected.POST("/publish", surveyHandler.PublishSurvey)
+				// surveyProtected.PUT("", surveyHandler.RestoreSurvey)
 				questionRoutes := surveyProtected.Group("/question")
 				{
 					questionRoutes.POST("", questionHandler.CreateQuestion)
@@ -50,9 +54,29 @@ func RegisterRoutes(
 						questionProtected.PATCH("", questionHandler.UpdateQuestion)
 						questionProtected.PATCH("/type", questionHandler.UpdateQuestionType)
 						questionProtected.PATCH("/order", questionHandler.UpdateQuestionOrder)
+						questionProtected.PUT("/restore", questionHandler.RestoreQuestion)
+						questionProtected.DELETE("", questionHandler.DeleteQuestion)
+						optionProtected := questionProtected.Group("/option/:optionId", optionMiddleware)
+						{
+							optionProtected.PATCH("", optionHandler.UpdateOptionOrder)
+							optionProtected.DELETE("", optionHandler.DeleteOption)
+							optionProtected.PATCH("", optionHandler.UpdateOption)
+						}
 					}
 				}
 			}
 		}
+
+		// interviewRoutes := api.Group("/interview/:hash")
+		// {
+		// 	interviewRoutes.POST("/start", interviewHandler.StartInterview)
+		// 	interviewRoutes.GET("/survey", interviewHandler.GetSurveyWithAnswers)
+		// 	interviewRoutes.PUT("/:questionId/answer", interviewHandler.UpdateQuestionAnswer)
+		// 	interviewRoutes.POST("/finish", interviewHandler.FinishInterview)
+		// }
+		// statsRoutes := api.Group("/stats/:hash")
+		// {
+		// 	statsRoutes.GET("", statsHandler.GetSurveyStats)
+		// }
 	}
 }

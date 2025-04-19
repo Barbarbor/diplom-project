@@ -227,14 +227,26 @@ func (r *questionRepository) UpdateQuestionType(questionID int, newType domain.Q
 
 // UpdateQuestionLabel обновляет только label для вопроса в survey_questions_temp.
 func (r *questionRepository) UpdateQuestion(questionID int, newLabel string) error {
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+
 	query := `
 		UPDATE survey_questions_temp
 		SET label = $1, updated_at = NOW()
 		WHERE id = $2`
-	_, err := r.db.Exec(query, newLabel, questionID)
+	_, err = tx.Exec(query, newLabel, questionID)
 	if err != nil {
 		return fmt.Errorf("failed to update question label: %w", err)
 	}
+
+	// Update the state if it’s 'ACTUAL'
+	if err := updateActualState(tx, "survey_questions_temp", "question_state", questionID); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	return nil
 }
 
@@ -261,4 +273,99 @@ func (r *questionRepository) UpdateQuestionOrder(questionID int, newOrder, curre
 		return err
 	}
 	return tx.Commit()
+}
+
+func (r *questionRepository) DeleteQuestion(questionID int) error {
+	// если NEW — удаляем, иначе ставим state = DELETED
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	return deleteEntity(tx, QuestionTable, QuestionStateField, questionID)
+}
+
+func (r *questionRepository) RestoreQuestion(tx *sqlx.Tx, questionTempID int) error {
+	// 1) Вытащить temp-вопрос
+	var temp domain.SurveyQuestionTemp
+	if err := tx.Get(&temp, `
+        SELECT id, question_original_id, survey_id
+        FROM survey_questions_temp
+        WHERE id = $1
+    `, questionTempID); err != nil {
+		return fmt.Errorf("temp question lookup: %w", err)
+	}
+
+	// 2) Если это совсем новый — удаляем его из temp
+	if temp.QuestionOriginalID == nil {
+		if _, err := tx.Exec(`
+            DELETE FROM survey_questions_temp WHERE id = $1
+        `, questionTempID); err != nil {
+			return fmt.Errorf("delete new temp question: %w", err)
+		}
+		return nil
+	}
+
+	origID := *temp.QuestionOriginalID
+
+	// 3) Подтягиваем оригинальный вопрос
+	var orig domain.SurveyQuestion
+	if err := tx.Get(&orig, `
+        SELECT id, survey_id, label, type, question_order
+        FROM survey_questions
+        WHERE id = $1
+    `, origID); err != nil {
+		return fmt.Errorf("original question lookup: %w", err)
+	}
+
+	// 4) Сбрасываем temp-запись в актуальное
+	if _, err := tx.Exec(`
+        UPDATE survey_questions_temp
+           SET label           = $1,
+               type            = $2,
+               question_order  = $3,
+               question_state  = 'ACTUAL',
+               updated_at      = NOW()
+         WHERE id = $4
+    `, orig.Label, orig.Type, orig.QuestionOrder, questionTempID); err != nil {
+		return fmt.Errorf("reset temp question: %w", err)
+	}
+
+	// 5) Удаляем из temp все варианты ответа
+	if _, err := tx.Exec(`
+        DELETE FROM survey_options_temp WHERE question_id = $1
+    `, questionTempID); err != nil {
+		return fmt.Errorf("clear temp options: %w", err)
+	}
+
+	// 6) Копируем из оригинальных опций в temp
+	rows, err := tx.Queryx(`
+        SELECT id, label, option_order
+          FROM survey_options
+         WHERE question_id = $1
+    `, origID)
+	if err != nil {
+		return fmt.Errorf("select original options: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var o struct {
+			ID          int
+			Label       string
+			OptionOrder int
+		}
+		if err := rows.StructScan(&o); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`
+            INSERT INTO survey_options_temp 
+                (option_original_id, question_id, label, option_order, option_state, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, 'ACTUAL', NOW(), NOW())
+        `, o.ID, questionTempID, o.Label, o.OptionOrder); err != nil {
+			return fmt.Errorf("insert temp option: %w", err)
+		}
+	}
+
+	return nil
 }

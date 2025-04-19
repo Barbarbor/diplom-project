@@ -42,3 +42,14 @@ func (s *OptionService) CreateOption(questionID int, questionType domain.Questio
 	}
 	return option, nil
 }
+func (s *OptionService) UpdateOptionOrder(option *domain.OptionTemp, newOrder int) error {
+	return s.repo.UpdateOptionOrder(option.ID, newOrder, option.OptionOrder, option.QuestionID)
+}
+
+func (s *OptionService) UpdateOptionLabel(option *domain.OptionTemp, newLabel string) error {
+	return s.repo.UpdateOptionLabel(option.ID, newLabel)
+}
+
+func (s *OptionService) DeleteOption(option *domain.OptionTemp) error {
+	return s.repo.DeleteOption(option.ID)
+}

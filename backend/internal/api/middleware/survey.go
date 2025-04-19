@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"backend/internal/repositories"
+	"backend/pkg/i18n"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,7 @@ func SurveyAccessMiddleware(surveyRepo repositories.SurveyRepository) gin.Handle
 		hash := c.Param("hash")
 
 		if hash == "" {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Survey hash is required"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": i18n.T("survey.handler.notFound")})
 			return
 		}
 
@@ -21,7 +22,7 @@ func SurveyAccessMiddleware(surveyRepo repositories.SurveyRepository) gin.Handle
 		survey, email, err := surveyRepo.GetSurveyByHash(hash)
 
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Survey not found"})
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": i18n.T("survey.handler.notFound")})
 			return
 		}
 
@@ -31,7 +32,7 @@ func SurveyAccessMiddleware(surveyRepo repositories.SurveyRepository) gin.Handle
 		hasAccess, err := surveyRepo.CheckUserAccess(userID.(int), survey.ID)
 
 		if err != nil || !hasAccess {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": i18n.T("survey.handler.accessDenied")})
 			return
 		}
 

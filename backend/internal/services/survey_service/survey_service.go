@@ -3,10 +3,13 @@ package survey
 import (
 	"backend/internal/domain"
 	"backend/internal/repositories"
+	"backend/pkg/i18n"
 	"crypto/rand"
 	"fmt"
 	"math/big"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // SurveyService определяет бизнес-логику для опросов.
@@ -45,7 +48,8 @@ func GenerateRandomHash(n int) (string, error) {
 
 func (s *SurveyService) CreateSurvey(authorID int) (*domain.Survey, error) {
 	now := time.Now()
-	title := fmt.Sprintf("Опрос от %s", now.Format("02.01.2006"))
+	titleTemplate := i18n.T("survey.service.defaultTitle")
+	title := fmt.Sprintf(titleTemplate, now.Format("02.01.2006"))
 	hash, err := GenerateRandomHash(15)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate survey hash: %w", err)
@@ -134,4 +138,48 @@ func (s *SurveyService) GetQuestionsForSurvey(surveyID int) ([]*domain.SurveyQue
 }
 func (s *SurveyService) GetSurveysByAuthor(authorID int) ([]*domain.SurveySummary, error) {
 	return s.surveyRepo.GetSurveysByAuthor(authorID)
+}
+
+func (s *SurveyService) UpdateSurvey(surveyID int, newTitle string) error {
+	return s.surveyRepo.UpdateSurveyTitle(surveyID, newTitle)
+}
+
+func (s *SurveyService) PublishSurvey(surveyID int) error {
+	return s.surveyRepo.PublishSurvey(surveyID)
+}
+
+func (s *SurveyService) RestoreSurvey(db *sqlx.DB, surveyID int) (err error) {
+	tx, err := db.Beginx()
+	if err != nil {
+		return
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	// 1) Найти все temp‑вопросы
+	var tempQIDs []int
+	if err = tx.Select(&tempQIDs, `
+        SELECT id FROM survey_questions_temp WHERE survey_id = $1
+    `, surveyID); err != nil {
+		return fmt.Errorf("list temp questions: %w", err)
+	}
+
+	// 2) Для каждого вопроса вызвать репозиторий
+	for _, qID := range tempQIDs {
+		if err = s.questionRepo.RestoreQuestion(tx, qID); err != nil {
+			return fmt.Errorf("restore question %d: %w", qID, err)
+		}
+	}
+
+	// 3) Восстановить metadata опроса
+	if err = s.surveyRepo.RestoreSurvey(tx, surveyID); err != nil {
+		return fmt.Errorf("restore survey metadata: %w", err)
+	}
+
+	return
 }

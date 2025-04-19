@@ -1,0 +1,82 @@
+-cmd
+-internal
+-migrations
+-pkg
+-.env
+-go.mod
+-go.sum
+
+-cmd:
+    --app
+    --migrate
+    --app:
+        ---main.go
+    --migrate:
+        ---main.go
+    --migrations:
+        ---0001_add_tables_enums_indexes.up.sql
+        ---0002_add_state_to_surveys.up.sql
+        ---0003_add_survey_choice_questions.up.sql
+        ---0004_add_temp_tables.up.sql
+        ---0005_add_state_to_temp_tables.up.sql
+        ---0006_add_option_order.up.sql
+    --pkg:
+        ---jwt
+        ---redisclient
+        ---jwt:
+            ----jwt.go
+        ---redisclient:
+            ----redisclient.go
+    --internal:
+        ---api
+        ---config
+        ---db
+        ---domain
+        ---repositories
+        ---services
+        ---api:
+            ----handlers
+            ----middleware
+            ----routes.go
+            ----handlers:
+                -----auth.go
+                -----option.go
+                -----profile.go
+                -----question.go
+                -----survey.go
+            ----middleware:
+                -----auth.go
+                -----question.go
+                -----survey.go
+        ---config:
+            ----config.go
+        ---db:
+            ----connection.go
+        ---domain:
+            ----interview.go
+            ----option.go
+            ----question.go
+            ----roles.go
+            ----survey_stat.go
+            ----survey.go
+            ----user.go
+        ---repositories:
+            ----auth_repository.go
+            ----consts.go
+            ----interfaces.go
+            ----option_repository.go
+            ----profile_repository.go
+            ----question_repository.go
+            ----survey_repository.go
+            ----util.go
+        ---services:
+            ----auth_service:
+                -----auth_service.go
+            ----option_service:
+                -----option_service.go
+            ----profile_service:
+                -----profile_service.go
+            ----question_service:
+                -----question_service.go
+            ----survey_service:
+                -----survey_service.go

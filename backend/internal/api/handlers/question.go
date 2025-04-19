@@ -3,6 +3,7 @@ package handlers
 import (
 	"backend/internal/domain"
 	question "backend/internal/services/question_service"
+	"backend/pkg/i18n"
 	"net/http"
 	"strconv"
 
@@ -25,18 +26,18 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 
 	survey, ok := surveyData.(*domain.Survey)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid survey data"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": i18n.T("question.handler.invalidData")})
 		return
 	}
 	questionType := c.Query("type")
 	if questionType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Question type is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": i18n.T("question.handler.invalidType")})
 		return
 	}
 
 	question, err := h.service.CreateQuestion(survey.ID, domain.QuestionType(questionType))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create question"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": i18n.T("question.handler.invalidType")})
 		return
 	}
 
@@ -140,4 +141,28 @@ func (h *QuestionHandler) UpdateQuestionOrder(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Question order updated successfully"})
+}
+
+// DELETE /api/surveys/:hash/question/:questionId
+func (h *QuestionHandler) DeleteQuestion(c *gin.Context) {
+	qData, _ := c.Get("question")
+	q := qData.(*domain.SurveyQuestionTemp)
+
+	if err := h.service.DeleteQuestion(q.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Question deleted"})
+}
+
+// PUT /api/surveys/:hash/question/:questionId/restore
+func (h *QuestionHandler) RestoreQuestion(c *gin.Context) {
+	qData, _ := c.Get("question")
+	q := qData.(*domain.SurveyQuestionTemp)
+
+	if err := h.service.RestoreQuestion(q.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Question restored"})
 }

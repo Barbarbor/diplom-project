@@ -100,3 +100,168 @@ func (r *surveyRepository) GetSurveysByAuthor(authorID int) ([]*domain.SurveySum
 	}
 	return summaries, nil
 }
+
+func (r *surveyRepository) UpdateSurveyTitle(surveyID int, newTitle string) error {
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Обновляем только title и updated_at в temp-таблице
+	if _, err := tx.Exec(`
+        UPDATE surveys_temp
+           SET title      = $1,
+               updated_at = NOW()
+         WHERE survey_original_id = $2
+    `, newTitle, surveyID); err != nil {
+		return fmt.Errorf("update surveys_temp title: %w", err)
+	}
+
+	return tx.Commit()
+}
+
+func (r *surveyRepository) PublishSurvey(surveyID int) error {
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// 1) Обновляем основной заголовок и переводим в ACTIVE
+	if _, err := tx.Exec(`
+        UPDATE surveys
+           SET title = (SELECT title FROM surveys_temp WHERE survey_original_id = $1),
+               state = 'ACTIVE'
+         WHERE id = $1 AND state = 'DRAFT'
+    `, surveyID); err != nil {
+		return fmt.Errorf("publish surveys: %w", err)
+	}
+
+	// 2) Вставляем «новые» вопросы (state = NEW)
+	type newQ struct {
+		TempID int    `db:"id"`
+		Label  string `db:"label"`
+		Type   string `db:"type"`
+		Order  int    `db:"question_order"`
+	}
+	var toCreateQs []newQ
+	if err := tx.Select(&toCreateQs, `
+        SELECT id, label, type, question_order
+          FROM survey_questions_temp
+         WHERE survey_id = $1 AND question_state = 'NEW'
+    `, surveyID); err != nil {
+		return fmt.Errorf("select new questions: %w", err)
+	}
+	for _, q := range toCreateQs {
+		var newID int
+		if err := tx.QueryRow(`
+            INSERT INTO survey_questions
+                        (survey_id, label, type, question_order, created_at, updated_at)
+                 VALUES ($1,      $2,    $3,   $4,            NOW(),      NOW())
+             RETURNING id
+        `, surveyID, q.Label, q.Type, q.Order).Scan(&newID); err != nil {
+			return fmt.Errorf("insert question #%d: %w", q.TempID, err)
+		}
+		// Наводим порядок в temp: привязываем original и переводим в ACTUAL
+		if _, err := tx.Exec(`
+            UPDATE survey_questions_temp
+               SET question_original_id = $1,
+                   question_state       = 'ACTUAL',
+                   updated_at           = NOW()
+             WHERE id = $2
+        `, newID, q.TempID); err != nil {
+			return fmt.Errorf("tag new temp question #%d: %w", q.TempID, err)
+		}
+	}
+
+	// 3) Обновляем «изменённые» (state = CHANGED или ACTUAL) вопросы
+	//    (например, label/type/order)
+	if _, err := tx.Exec(`
+        UPDATE survey_questions AS real
+           SET label          = tmp.label,
+               type           = tmp.type,
+               question_order = tmp.question_order,
+               updated_at     = NOW()
+          FROM survey_questions_temp AS tmp
+         WHERE tmp.question_original_id = real.id
+           AND tmp.survey_id = $1
+           AND tmp.question_state IN ('ACTUAL', 'CHANGED')
+    `, surveyID); err != nil {
+		return fmt.Errorf("sync changed questions: %w", err)
+	}
+	// приводим все их temp‑состояния к ACTUAL
+	if _, err := tx.Exec(`
+        UPDATE survey_questions_temp
+           SET question_state = 'ACTUAL',
+               updated_at     = NOW()
+         WHERE survey_id = $1
+           AND question_state IN ('ACTUAL', 'CHANGED')
+    `, surveyID); err != nil {
+		return fmt.Errorf("reset temp states questions: %w", err)
+	}
+
+	// 4) Удаляем «помеченные на удаление» (state = DELETED)
+	//   сначала опции, потом вопросы
+	if _, err := tx.Exec(`
+        DELETE FROM survey_options
+         WHERE question_id IN (
+             SELECT question_original_id
+               FROM survey_questions_temp
+              WHERE survey_id = $1
+                AND question_state = 'DELETED'
+         )
+    `, surveyID); err != nil {
+		return fmt.Errorf("delete real options: %w", err)
+	}
+	if _, err := tx.Exec(`
+        DELETE FROM survey_questions
+         WHERE id IN (
+             SELECT question_original_id
+               FROM survey_questions_temp
+              WHERE survey_id = $1
+                AND question_state = 'DELETED'
+         )
+    `, surveyID); err != nil {
+		return fmt.Errorf("delete real questions: %w", err)
+	}
+	// и теперь сами temp‑записи
+	if _, err := tx.Exec(`
+        DELETE FROM survey_options_temp
+         WHERE question_id IN (
+             SELECT id
+               FROM survey_questions_temp
+              WHERE survey_id = $1
+                AND question_state = 'DELETED'
+         )
+    `, surveyID); err != nil {
+		return fmt.Errorf("delete temp options: %w", err)
+	}
+	if _, err := tx.Exec(`
+        DELETE FROM survey_questions_temp
+         WHERE survey_id = $1
+           AND question_state = 'DELETED'
+    `, surveyID); err != nil {
+		return fmt.Errorf("delete temp questions: %w", err)
+	}
+
+	// 5) (опционально) можно почистить surveys_temp, если больше не нужен
+
+	return tx.Commit()
+}
+
+func (r *surveyRepository) RestoreSurvey(tx *sqlx.Tx, surveyID int) error {
+	// 1. Сначала восстанавливаем title и updated_at в основной таблице из temp
+	_, err := tx.Exec(`
+		UPDATE surveys s
+		   SET title = t.title,
+		       updated_at = t.updated_at
+		  FROM surveys_temp t
+		 WHERE t.survey_original_id = s.id
+		   AND s.id = $1
+	`, surveyID)
+	if err != nil {
+		return fmt.Errorf("failed to restore survey metadata: %w", err)
+	}
+	return nil
+}

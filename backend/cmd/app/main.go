@@ -56,13 +56,13 @@ func main() {
 	// Инициализация хэндлеров
 	authHandler := handlers.NewAuthHandler(authService)
 	profileHandler := handlers.NewProfileHandler(profileService)
-	surveyHandler := handlers.NewSurveyHandler(surveyService)
+	surveyHandler := handlers.NewSurveyHandler(surveyService, database)
 	questionHandler := handlers.NewQuestionHandler(questionService)
 	optionHandler := handlers.NewOptionHandler(optionService)
 
 	surveyAccessMiddleware := middleware.SurveyAccessMiddleware(surveyRepo)
 	questionMiddleware := middleware.QuestionMiddleware(questionRepo)
-
+	optionMiddleware := middleware.OptionMiddleware(optionRepo)
 	// Инициализация роутера
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
@@ -73,7 +73,7 @@ func main() {
 		MaxAge:           24 * time.Hour,
 	}))
 	// Регистрация маршрутов
-	api.RegisterRoutes(router, authHandler, profileHandler, surveyHandler, questionHandler, optionHandler, surveyAccessMiddleware, questionMiddleware)
+	api.RegisterRoutes(router, authHandler, profileHandler, surveyHandler, questionHandler, optionHandler, surveyAccessMiddleware, questionMiddleware, optionMiddleware)
 
 	// Запуск сервера
 	log.Printf("Starting server on %s", cfg.ServerPort)

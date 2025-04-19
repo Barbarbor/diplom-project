@@ -3,6 +3,7 @@ package question
 import (
 	"backend/internal/domain"
 	"backend/internal/repositories"
+	"backend/pkg/i18n"
 )
 
 // QuestionService отвечает за бизнес-логику работы с вопросами
@@ -19,9 +20,9 @@ func NewQuestionService(repo repositories.QuestionRepository) *QuestionService {
 func (s *QuestionService) CreateQuestion(surveyID int, questionType domain.QuestionType) (*domain.SurveyQuestionTemp, error) {
 	// Предопределённые параметры для типов вопросов
 	defaultQuestions := map[domain.QuestionType]*domain.SurveyQuestionTemp{
-		domain.SingleChoice: {Label: "Выберите один вариант", Type: domain.SingleChoice},
-		domain.MultiChoice:  {Label: "Выберите несколько вариантов", Type: domain.MultiChoice}}
-
+		domain.SingleChoice: {Label: i18n.T("question.service.defaultSingle"), Type: domain.SingleChoice},
+		domain.MultiChoice:  {Label: i18n.T("question.service.defaultMulti"), Type: domain.MultiChoice},
+	}
 	question, exists := defaultQuestions[questionType]
 	if !exists {
 		return nil, domain.ErrInvalidQuestionType
@@ -53,4 +54,12 @@ func (s *QuestionService) UpdateQuestion(questionID int, newLabel string) error 
 // Параметры currentOrder и surveyID должны быть извлечены до вызова этой функции.
 func (s *QuestionService) UpdateQuestionOrder(questionID, newOrder, currentOrder, surveyID int) error {
 	return s.repo.UpdateQuestionOrder(questionID, newOrder, currentOrder, surveyID)
+}
+
+func (s *QuestionService) DeleteQuestion(id int) error {
+	return s.repo.DeleteQuestion(id)
+}
+
+func (s *QuestionService) RestoreQuestion(id int) error {
+	return s.repo.RestoreQuestion(id)
 }
