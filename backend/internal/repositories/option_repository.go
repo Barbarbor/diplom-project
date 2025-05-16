@@ -59,6 +59,7 @@ func (r *optionRepository) UpdateOptionOrder(optionID, newOrder, currentOrder, q
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
 	if err := updateEntityOrder(tx, OptionTable, OptionFKField, OptionOrderField, OptionStateField,
 		optionID, newOrder, currentOrder, questionID); err != nil {
 		tx.Rollback()
@@ -72,6 +73,8 @@ func (r *optionRepository) UpdateOptionLabel(optionID int, newLabel string) erro
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
+
 	if err := updateEntityLabel(tx, OptionTable, OptionLabelField, OptionStateField, optionID, newLabel); err != nil {
 		tx.Rollback()
 		return err
@@ -84,7 +87,8 @@ func (r *optionRepository) DeleteOption(optionID int) error {
 	if err != nil {
 		return err
 	}
-	if err := deleteEntity(tx, OptionTable, OptionStateField, optionID); err != nil {
+	defer tx.Rollback()
+	if err := deleteEntity(tx, OptionTable, OptionFKField, OptionOrderField, OptionStateField, optionID); err != nil {
 		tx.Rollback()
 		return err
 	}

@@ -1,6 +1,6 @@
 // lib/api.ts
 
-type ApiRequestParams = {
+export type ApiRequestParams = {
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   url: string;
   disableAuthCookie?: boolean;
@@ -14,11 +14,12 @@ type ApiRequestParams = {
   };
 };
 
-type ApiResponse<T = unknown> = {
+export type ApiResponse<T = unknown> = {
   data?: T;
   error?: string;
   headers?: Headers;
   status: number;
+  success?: boolean;
 };
 
 const request = async <T = unknown>({
@@ -27,7 +28,7 @@ const request = async <T = unknown>({
   disableAuthCookie = false,
   prefix = "",
   data,
-  cache = {},
+  cache = { disabled: true},
 }: ApiRequestParams): Promise<ApiResponse<T>> => {
   const fullUrl = `${process.env.NEXT_PUBLIC_API_URL}${prefix}${url}`;
   const headers: HeadersInit = {
@@ -48,7 +49,7 @@ const request = async <T = unknown>({
 
   if (!response.ok) {
     const responseBody = await response.json();
-    return { error: responseBody.error, status: response.status };
+    return { error: responseBody.error, status: response.status, success: false };
   }
 
   const responseData = await response.json();
@@ -56,6 +57,7 @@ const request = async <T = unknown>({
     data: responseData as T,
     status: response.status,
     headers: response.headers,
+    success: true
   };
 };
 

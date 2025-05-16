@@ -119,7 +119,7 @@ func (h *SurveyHandler) UpdateSurvey(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Survey title updated"})
+	c.Status(http.StatusNoContent)
 }
 
 // POST /api/surveys/:hash/publish
@@ -130,17 +130,18 @@ func (h *SurveyHandler) PublishSurvey(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Survey published"})
+	c.Status(http.StatusNoContent)
 }
 
+// PUT /api/surveys/:hash/restore
 func (h *SurveyHandler) RestoreSurvey(c *gin.Context) {
-	// hash уже прошёл через SurveyAccessMiddleware → в контексте есть "survey"
-	surveyData, _ := c.Get("survey")
-	survey := surveyData.(*domain.Survey)
+	// middleware уже положил *domain.Survey
+	raw, _ := c.Get("survey")
+	surveyObj := raw.(*domain.Survey)
 
-	if err := h.surveyService.RestoreSurvey(h.db, survey.ID); err != nil {
+	if err := h.surveyService.RestoreSurveyByID(surveyObj.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Survey restored successfully"})
+	c.Status(http.StatusNoContent)
 }

@@ -57,28 +57,55 @@ func updateEntityOrder(tx *sqlx.Tx, table, fkField, orderField, stateField strin
 	return nil
 }
 
-// --- универсальный метод для логического удаления ---
-func deleteEntity(tx *sqlx.Tx, table, stateField string, entityID int) error {
-	// получаем текущее состояние
-	var state string
-	if err := tx.Get(&state, fmt.Sprintf("SELECT %s FROM %s WHERE id=$1", stateField, table), entityID); err != nil {
-		return fmt.Errorf("failed to get state: %w", err)
+// deleteEntity удаляет или логически помечает запись,
+// а затем «сдвигает» порядковые номера всех последующих элементов на 1.
+func deleteEntity(tx *sqlx.Tx, table, fkField, orderField, stateField string, entityID int) error {
+	// 1) Получаем текущее состояние, порядковый номер и значение внешнего ключа
+	var (
+		state        string
+		currentOrder int
+		fkValue      int
+	)
+	selectSQL := fmt.Sprintf(
+		`SELECT %s, %s, %s FROM %s WHERE id = $1`,
+		stateField, orderField, fkField, table,
+	)
+	if err := tx.QueryRow(selectSQL, entityID).Scan(&state, &currentOrder, &fkValue); err != nil {
+		return fmt.Errorf("failed to lookup entity %d in %s: %w", entityID, table, err)
 	}
-	switch state {
-	case "NEW":
-		// для NEW — удаляем совсем
-		if _, err := tx.Exec(fmt.Sprintf("DELETE FROM %s WHERE id=$1", table), entityID); err != nil {
-			return fmt.Errorf("failed to delete new entity: %w", err)
+
+	// 2) Удаляем или логически помечаем
+	if state == "NEW" {
+		// удаляем совсем
+		delSQL := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, table)
+		if _, err := tx.Exec(delSQL, entityID); err != nil {
+			return fmt.Errorf("failed to delete NEW entity %d from %s: %w", entityID, table, err)
 		}
-	default:
-		// для ACTUAL/CHANGED — помечаем DELETED
-		if _, err := tx.Exec(
-			fmt.Sprintf("UPDATE %s SET %s='DELETED', updated_at=NOW() WHERE id=$1", table, stateField),
-			entityID,
-		); err != nil {
-			return fmt.Errorf("failed to mark entity deleted: %w", err)
+	} else {
+		// помечаем DELETED
+		markSQL := fmt.Sprintf(
+			`UPDATE %s SET %s = 'DELETED', updated_at = NOW() WHERE id = $1`,
+			table, stateField,
+		)
+		if _, err := tx.Exec(markSQL, entityID); err != nil {
+			return fmt.Errorf("failed to mark entity %d deleted in %s: %w", entityID, table, err)
 		}
 	}
+
+	// 3) Сдвигаем всех «последующих» на 1 влево
+	shiftSQL := fmt.Sprintf(
+		`UPDATE %s
+		 SET %s = %s - 1,
+		     updated_at = NOW()
+		 WHERE %s = $1
+		   AND %s > $2
+		   AND %s != 'DELETED'`,
+		table, orderField, orderField, fkField, orderField, stateField,
+	)
+	if _, err := tx.Exec(shiftSQL, fkValue, currentOrder); err != nil {
+		return fmt.Errorf("failed to shift %s after deleting entity %d: %w", table, entityID, err)
+	}
+
 	return nil
 }
 

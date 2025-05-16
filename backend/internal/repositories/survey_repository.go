@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"backend/internal/domain"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -120,7 +121,6 @@ func (r *surveyRepository) UpdateSurveyTitle(surveyID int, newTitle string) erro
 
 	return tx.Commit()
 }
-
 func (r *surveyRepository) PublishSurvey(surveyID int) error {
 	tx, err := r.db.Beginx()
 	if err != nil {
@@ -140,14 +140,15 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
 
 	// 2) Вставляем «новые» вопросы (state = NEW)
 	type newQ struct {
-		TempID int    `db:"id"`
-		Label  string `db:"label"`
-		Type   string `db:"type"`
-		Order  int    `db:"question_order"`
+		TempID      int             `db:"id"`
+		Label       string          `db:"label"`
+		Type        string          `db:"type"`
+		Order       int             `db:"question_order"`
+		ExtraParams json.RawMessage `db:"extra_params"`
 	}
 	var toCreateQs []newQ
 	if err := tx.Select(&toCreateQs, `
-        SELECT id, label, type, question_order
+        SELECT id, label, type, question_order, extra_params
           FROM survey_questions_temp
          WHERE survey_id = $1 AND question_state = 'NEW'
     `, surveyID); err != nil {
@@ -157,10 +158,10 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
 		var newID int
 		if err := tx.QueryRow(`
             INSERT INTO survey_questions
-                        (survey_id, label, type, question_order, created_at, updated_at)
-                 VALUES ($1,      $2,    $3,   $4,            NOW(),      NOW())
+                        (survey_id, label, type, question_order,extra_params, created_at, updated_at)
+                 VALUES ($1,      $2,    $3::question_type_enum,   $4,  $5,          NOW(),      NOW())
              RETURNING id
-        `, surveyID, q.Label, q.Type, q.Order).Scan(&newID); err != nil {
+        `, surveyID, q.Label, q.Type, q.Order, q.ExtraParams).Scan(&newID); err != nil {
 			return fmt.Errorf("insert question #%d: %w", q.TempID, err)
 		}
 		// Наводим порядок в temp: привязываем original и переводим в ACTUAL
@@ -180,7 +181,7 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
 	if _, err := tx.Exec(`
         UPDATE survey_questions AS real
            SET label          = tmp.label,
-               type           = tmp.type,
+               type           = tmp.type::question_type_enum,
                question_order = tmp.question_order,
                updated_at     = NOW()
           FROM survey_questions_temp AS tmp
@@ -245,23 +246,24 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
 		return fmt.Errorf("delete temp questions: %w", err)
 	}
 
-	// 5) (опционально) можно почистить surveys_temp, если больше не нужен
-
 	return tx.Commit()
 }
 
-func (r *surveyRepository) RestoreSurvey(tx *sqlx.Tx, surveyID int) error {
-	// 1. Сначала восстанавливаем title и updated_at в основной таблице из temp
+// Меняем title = surveys_temp.title и updated_at
+func (r *surveyRepository) UpdateSurveyTitleTx(tx *sqlx.Tx, surveyID int) error {
 	_, err := tx.Exec(`
-		UPDATE surveys s
-		   SET title = t.title,
-		       updated_at = t.updated_at
-		  FROM surveys_temp t
-		 WHERE t.survey_original_id = s.id
-		   AND s.id = $1
-	`, surveyID)
+        UPDATE surveys s
+        SET title      = st.title,
+            updated_at = NOW()
+        FROM surveys_temp st
+        WHERE s.id = st.survey_original_id
+          AND st.survey_original_id = $1
+    `, surveyID)
 	if err != nil {
-		return fmt.Errorf("failed to restore survey metadata: %w", err)
+		return fmt.Errorf("update survey title: %w", err)
 	}
 	return nil
+}
+func (r *surveyRepository) BeginTx() (*sqlx.Tx, error) {
+	return r.db.Beginx()
 }

@@ -73,7 +73,7 @@ func (h *QuestionHandler) UpdateQuestionType(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Question type updated successfully"})
+	c.Status(http.StatusNoContent)
 }
 
 // UpdateQuestionLabelHandler обновляет только label вопроса.
@@ -96,7 +96,7 @@ func (h *QuestionHandler) UpdateQuestion(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Question label updated successfully"})
+	c.Status(http.StatusNoContent)
 }
 
 // UpdateQuestionOrderHandler обновляет порядок вопроса.
@@ -140,7 +140,7 @@ func (h *QuestionHandler) UpdateQuestionOrder(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Question order updated successfully"})
+	c.Status(http.StatusNoContent)
 }
 
 // DELETE /api/surveys/:hash/question/:questionId
@@ -152,7 +152,7 @@ func (h *QuestionHandler) DeleteQuestion(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Question deleted"})
+	c.Status(http.StatusNoContent)
 }
 
 // PUT /api/surveys/:hash/question/:questionId/restore
@@ -164,5 +164,30 @@ func (h *QuestionHandler) RestoreQuestion(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Question restored"})
+	c.Status(http.StatusNoContent)
+}
+
+// UpdateExtraParams обновляет extra_params вопроса
+func (h *QuestionHandler) UpdateExtraParams(c *gin.Context) {
+	// Извлечённый question из Middleware
+	qData, _ := c.Get("question")
+	question, ok := qData.(*domain.SurveyQuestionTemp)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": i18n.T("question.handler.invalidData")})
+		return
+	}
+
+	// Парсим тело в map[string]interface{}
+	var params map[string]interface{}
+	if err := c.BindJSON(&params); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": i18n.T("question.handler.invalidData")})
+		return
+	}
+
+	if err := h.service.UpdateQuestionExtraParams(question.ID, params); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	// По желанию можно вернуть обновлённый объект
+	c.Status(http.StatusNoContent)
 }

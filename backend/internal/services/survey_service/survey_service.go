@@ -7,9 +7,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 )
 
 // SurveyService определяет бизнес-логику для опросов.
@@ -146,12 +145,11 @@ func (s *SurveyService) UpdateSurvey(surveyID int, newTitle string) error {
 
 func (s *SurveyService) PublishSurvey(surveyID int) error {
 	return s.surveyRepo.PublishSurvey(surveyID)
-}
-
-func (s *SurveyService) RestoreSurvey(db *sqlx.DB, surveyID int) (err error) {
-	tx, err := db.Beginx()
+} // Восстанавливаем опрос целиком по его ID
+func (s *SurveyService) RestoreSurveyByID(surveyID int) (err error) {
+	tx, err := s.surveyRepo.BeginTx()
 	if err != nil {
-		return
+		return err
 	}
 	defer func() {
 		if err != nil {
@@ -161,25 +159,34 @@ func (s *SurveyService) RestoreSurvey(db *sqlx.DB, surveyID int) (err error) {
 		}
 	}()
 
-	// 1) Найти все temp‑вопросы
-	var tempQIDs []int
-	if err = tx.Select(&tempQIDs, `
-        SELECT id FROM survey_questions_temp WHERE survey_id = $1
-    `, surveyID); err != nil {
-		return fmt.Errorf("list temp questions: %w", err)
+	// 1) Обновляем только title из temp
+	if err = s.surveyRepo.UpdateSurveyTitleTx(tx, surveyID); err != nil {
+		return err
 	}
 
-	// 2) Для каждого вопроса вызвать репозиторий
-	for _, qID := range tempQIDs {
-		if err = s.questionRepo.RestoreQuestion(tx, qID); err != nil {
-			return fmt.Errorf("restore question %d: %w", qID, err)
-		}
+	// 2) Берём все временные вопросы
+	tempIDs, err := s.questionRepo.GetTempQuestionIDsBySurveyIDTx(tx, surveyID)
+	if err != nil {
+		return fmt.Errorf("fetch temp question ids: %w", err)
 	}
 
-	// 3) Восстановить metadata опроса
-	if err = s.surveyRepo.RestoreSurvey(tx, surveyID); err != nil {
-		return fmt.Errorf("restore survey metadata: %w", err)
+	// 3) Параллельно "восстанавливаем" каждый вопрос
+	errCh := make(chan error, len(tempIDs))
+	var wg sync.WaitGroup
+	for _, qID := range tempIDs {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			if e := s.questionRepo.RestoreQuestionTx(tx, id); e != nil {
+				errCh <- fmt.Errorf("restore question %d: %w", id, e)
+			}
+		}(qID)
+	}
+	wg.Wait()
+	close(errCh)
+	if e, ok := <-errCh; ok {
+		return e
 	}
 
-	return
+	return nil
 }

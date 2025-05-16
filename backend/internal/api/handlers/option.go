@@ -47,17 +47,22 @@ func (h *OptionHandler) UpdateOptionOrder(c *gin.Context) {
 	opt := optData.(*domain.OptionTemp)
 
 	var body struct {
-		NewOrder int `json:"newOrder"`
+		NewOrder int `json:"new_order" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": i18n.T("option.handler.invalidData")})
+		return
+	}
+	// Проверяем, что новый порядок допустим (не равен текущему и не выходит за границы)
+	if body.NewOrder <= 0 || body.NewOrder == opt.OptionOrder {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid new order value"})
 		return
 	}
 	if err := h.optionService.UpdateOptionOrder(opt, body.NewOrder); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": i18n.T("option.handler.success")})
+	c.Status(http.StatusNoContent)
 }
 
 // DELETE /api/.../option/:optionId
@@ -69,7 +74,7 @@ func (h *OptionHandler) DeleteOption(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": i18n.T("option.handler.deleted")})
+	c.Status(http.StatusNoContent)
 }
 
 // PATCH /api/.../option/:optionId
@@ -88,5 +93,5 @@ func (h *OptionHandler) UpdateOption(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": i18n.T("option.handler.updated")})
+	c.Status(http.StatusNoContent)
 }

@@ -28,7 +28,9 @@ type SurveyRepository interface {
 	GetSurveysByAuthor(authorID int) ([]*domain.SurveySummary, error) // Новый метод
 	PublishSurvey(surveyID int) error
 	UpdateSurveyTitle(surveyID int, newTitle string) error
-	RestoreSurvey(tx *sqlx.Tx, surveyID int) error
+	// Для RestoreSurvey
+	BeginTx() (*sqlx.Tx, error)
+	UpdateSurveyTitleTx(tx *sqlx.Tx, surveyID int) error
 }
 
 // QuestionRepository определяет методы для работы с вопросами в БД
@@ -44,9 +46,16 @@ type QuestionRepository interface {
 	UpdateQuestion(questionID int, newLabel string) error
 	UpdateQuestionType(questionID int, newType domain.QuestionType, currentState string) error
 	UpdateQuestionOrder(questionID int, newOrder, currentOrder, surveyID int) error
+	UpdateQuestionExtraParams(questionID int, params map[string]interface{}) error
 
 	DeleteQuestion(questionID int) error
 	RestoreQuestion(questionTempID int) error
+
+	GetTempQuestionIDsBySurveyIDTx(
+		tx *sqlx.Tx, surveyID int,
+	) ([]int, error)
+	RestoreQuestionTx(tx *sqlx.Tx, questionTempID int) error
+	restoreQuestionTx(tx *sqlx.Tx, questionTempID int) error
 }
 
 // OptionRepository описывает операции с опциями.

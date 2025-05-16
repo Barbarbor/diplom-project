@@ -3,6 +3,7 @@ package middleware
 import (
 	"backend/internal/domain"
 	"backend/internal/repositories"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -27,8 +28,9 @@ func QuestionMiddleware(questionRepo repositories.QuestionRepository) gin.Handle
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid question ID"})
 			return
 		}
-
+		fmt.Print("questionId", questionID, " surveyId", surveyID)
 		question, err := questionRepo.GetQuestionByID(questionID, surveyID)
+		fmt.Println(" question", question)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Question not found"})
 			return

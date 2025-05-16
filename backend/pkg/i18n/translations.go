@@ -32,9 +32,16 @@ var Translations = map[string]map[string]map[string]map[string]string{
 				"invalidData": "Invalid question data",
 			},
 			"service": {
-				"defaultSingle": "Choose one option",
-				"defaultMulti":  "Choose multiple options",
-				"invalidType":   "Invalid question type", // Internal, untranslated
+				"defaultSingle":    "Choose one option",
+				"defaultMulti":     "Choose multiple options",
+				"defaultConsent":   "Please provide your consent",
+				"defaultEmail":     "Enter your email",
+				"defaultRating":    "Please rate on the scale",
+				"defaultDate":      "Select a date",
+				"defaultShortText": "Short answer",
+				"defaultLongText":  "Long answer",
+				"defaultNumber":    "Enter a number",
+				"invalidType":      "Invalid question type", // Internal, untranslated
 			},
 		},
 		"option": {
@@ -71,9 +78,17 @@ var Translations = map[string]map[string]map[string]map[string]string{
 				"invalidData": "Неверные данные вопроса",
 			},
 			"service": {
-				"defaultSingle": "Выберите один вариант",
-				"defaultMulti":  "Выберите несколько вариантов",
-				"invalidType":   "Неверный тип вопроса", // Internal, untranslated
+				"defaultSingle":    "Выберите один вариант",
+				"defaultMulti":     "Выберите несколько вариантов",
+				"defaultConsent":   "Пожалуйста, подтвердите своё согласие",
+				"defaultEmail":     "Введите ваш email",
+				"defaultRating":    "Пожалуйста, оцените по шкале",
+				"defaultDate":      "Выберите дату",
+				"defaultShortText": "Краткий ответ",
+				"defaultLongText":  "Развернутый ответ",
+				"defaultNumber":    "Введите число",
+
+				"invalidType": "Неверный тип вопроса", // Internal, untranslated
 			},
 		},
 		"option": {

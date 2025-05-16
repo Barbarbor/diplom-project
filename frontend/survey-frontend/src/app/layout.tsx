@@ -4,6 +4,8 @@ import "./globals.css";
 import "../i18n";
 import { checkIsUserLogged } from "@/api-client/auth";
 import I18nWrapper from "@/components/I18nWrapper";
+import QueryProvider from './providers';
+
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -20,10 +22,12 @@ export default async function RootLayout({
   return (
     <html lang="ru">
       <body>
+        <QueryProvider>
         <I18nWrapper>
           <Navbar withProfile={isLogged} />
           {children}
         </I18nWrapper>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -1,26 +1,79 @@
-import serverRequest from "@/lib/serverApi";
-import request from "@/lib/api";
-import { GetSurveyResponse } from "@/types/survey";
+import request, { ApiResponse } from "@/lib/api";
+import {
+  CreateSurveyResponse,
+  GetSurveysResponse,
+  GetSurveyResponse,
+  UpdateSurveyRequest,
+} from "@/types/survey";
 
-// Функция для создания опроса (POST /api/surveys)
-export const createSurvey = async () => {
-  const response = await request<{hash:string}>({
+/**
+ * Создать новый опрос. Клиентский вызов.
+ */
+export const createSurvey = async (): Promise<ApiResponse<CreateSurveyResponse>> => {
+  return await request<CreateSurveyResponse>({
     method: "POST",
     prefix: "/api",
     url: "/surveys",
-    cache: { disabled: true },
   });
-  return response;
 };
 
-// Функция для получения опроса по hash (GET /api/surveys/:hash)
-export const getSurvey = async (hash: string) => {
-  const response = await serverRequest<GetSurveyResponse>({
+/**
+ * Получить список опросов, созданных пользователем. Клиентский вызов.
+ */
+export const getSurveys = async (): Promise<ApiResponse<GetSurveysResponse>> => {
+  return await request<GetSurveysResponse>({
+    method: "GET",
+    prefix: "/api",
+    url: "/surveys",
+  });
+};
+
+/**
+ * Получить детали одного опроса по hash. Клиентский вызов.
+ */
+export const getSurvey = async (hash: string): Promise<ApiResponse<GetSurveyResponse>> => {
+  return await request<GetSurveyResponse>({
     method: "GET",
     prefix: "/api",
     url: `/surveys/${hash}`,
-    cache: { disabled: true },
   });
-  console.log('resp', response);
-  return response;
 };
+
+/**
+ * Обновить заголовок опроса. Клиентский вызов.
+ */
+export const updateSurvey = async (
+  hash: string,
+  data: UpdateSurveyRequest
+): Promise<ApiResponse<void>> => {
+  return await request<void>({
+    method: "PATCH",
+    prefix: "/api",
+    url: `/surveys/${hash}`,
+    data,
+  });
+};
+
+/**
+ * Опубликовать опрос. Клиентский вызов.
+ */
+export const publishSurvey = async (hash: string): Promise<ApiResponse<void>> => {
+  return await request<void>({
+    method: "POST",
+    prefix: "/api",
+    url: `/surveys/${hash}/publish`,
+  });
+};
+
+/**
+ * Восстановить опрос из временной области. Клиентский вызов.
+ */
+export const restoreSurvey = async (hash: string): Promise<ApiResponse<void>> => {
+  return await request<void>({
+    method: "PUT",
+    prefix: "/api",
+    url: `/surveys/${hash}/restore`,
+  });
+};
+export type { UpdateSurveyRequest };
+

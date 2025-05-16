@@ -5,6 +5,7 @@ package repositories
 import (
 	"backend/internal/domain"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -69,11 +70,19 @@ func (r *questionRepository) CreateQuestion(question *domain.SurveyQuestionTemp)
 		return err
 	}
 
+	extraParamsJSON, err := json.Marshal(question.ExtraParams)
+	if err != nil {
+		return fmt.Errorf("failed to marshal extra_params: %w", err)
+	}
+
 	query := `
-		INSERT INTO survey_questions_temp (question_original_id, survey_id, label, type, question_order, question_state, created_at, updated_at)
-		VALUES (NULL, $1, $2, $3, $4, 'NEW', NOW(), NOW())
+		INSERT INTO survey_questions_temp (
+			question_original_id, survey_id, label, type, question_order, question_state, extra_params, created_at, updated_at
+		) VALUES (
+			NULL, $1, $2, $3, $4, 'NEW', $5, NOW(), NOW()
+		)
 		RETURNING id, question_order`
-	err = tx.QueryRow(query, question.SurveyID, question.Label, question.Type, maxOrder+1).
+	err = tx.QueryRow(query, question.SurveyID, question.Label, question.Type, maxOrder+1, extraParamsJSON).
 		Scan(&question.ID, &question.QuestionOrder)
 	if err != nil {
 		tx.Rollback()
@@ -120,8 +129,10 @@ func (r *questionRepository) GetQuestionByID(questionID int, surveyID int) (*dom
 		WHERE id = $1
 		AND survey_id = $2`
 	if err := r.db.Get(&question, query, questionID, surveyID); err != nil {
+
 		return nil, fmt.Errorf("failed to get question by id: %w", err)
 	}
+
 	return &question, nil
 }
 
@@ -231,23 +242,12 @@ func (r *questionRepository) UpdateQuestion(questionID int, newLabel string) err
 	if err != nil {
 		return err
 	}
-
-	query := `
-		UPDATE survey_questions_temp
-		SET label = $1, updated_at = NOW()
-		WHERE id = $2`
-	_, err = tx.Exec(query, newLabel, questionID)
-	if err != nil {
-		return fmt.Errorf("failed to update question label: %w", err)
-	}
-
-	// Update the state if it’s 'ACTUAL'
-	if err := updateActualState(tx, "survey_questions_temp", "question_state", questionID); err != nil {
+	defer tx.Rollback()
+	if err := updateEntityLabel(tx, QuestionTable, QuestionLabelField, QuestionStateField, questionID, newLabel); err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	return nil
+	return tx.Commit()
 }
 
 // UpdateQuestionOrder обновляет порядок вопроса в таблице survey_questions_temp.
@@ -258,7 +258,7 @@ func (r *questionRepository) UpdateQuestionOrder(questionID int, newOrder, curre
 	if err != nil {
 		return err
 	}
-
+	defer tx.Rollback()
 	// Получаем максимальное значение question_order (учитывая только вопросы, не удаленные)
 	maxOrder, err := r.GetQuestionMaxOrder(surveyID)
 	if err != nil {
@@ -282,68 +282,108 @@ func (r *questionRepository) DeleteQuestion(questionID int) error {
 		return err
 	}
 
-	return deleteEntity(tx, QuestionTable, QuestionStateField, questionID)
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	return deleteEntity(tx, QuestionTable, QuestionFKField, QuestionOrderField, QuestionStateField, questionID)
 }
 
-func (r *questionRepository) RestoreQuestion(tx *sqlx.Tx, questionTempID int) error {
-	// 1) Вытащить temp-вопрос
-	var temp domain.SurveyQuestionTemp
+// Public API: сам открывает транзакцию и вызывает приватную логику
+func (r *questionRepository) RestoreQuestion(questionTempID int) error {
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	return r.restoreQuestionTx(tx, questionTempID)
+}
+
+func (r *questionRepository) RestoreQuestionTx(tx *sqlx.Tx, questionTempID int) error {
+	return r.restoreQuestionTx(tx, questionTempID)
+}
+
+// Здесь — ваша существующая логика в точности, только вынесена в приватный метод
+func (r *questionRepository) restoreQuestionTx(tx *sqlx.Tx, questionTempID int) error {
+	// 1) Вытаскиваем temp-вопрос
+	var temp struct {
+		ID                 int           `db:"id"`
+		QuestionOriginalID sql.NullInt64 `db:"question_original_id"`
+	}
 	if err := tx.Get(&temp, `
-        SELECT id, question_original_id, survey_id
-        FROM survey_questions_temp
-        WHERE id = $1
-    `, questionTempID); err != nil {
+		SELECT id, question_original_id
+		FROM survey_questions_temp
+		WHERE id = $1`, questionTempID,
+	); err != nil {
 		return fmt.Errorf("temp question lookup: %w", err)
 	}
 
-	// 2) Если это совсем новый — удаляем его из temp
-	if temp.QuestionOriginalID == nil {
-		if _, err := tx.Exec(`
-            DELETE FROM survey_questions_temp WHERE id = $1
-        `, questionTempID); err != nil {
+	// 2) Если это новая запись — просто удаляем
+	if !temp.QuestionOriginalID.Valid {
+		if _, err := tx.Exec(`DELETE FROM survey_questions_temp WHERE id = $1`, questionTempID); err != nil {
 			return fmt.Errorf("delete new temp question: %w", err)
 		}
 		return nil
 	}
 
-	origID := *temp.QuestionOriginalID
+	origID := int(temp.QuestionOriginalID.Int64)
 
-	// 3) Подтягиваем оригинальный вопрос
-	var orig domain.SurveyQuestion
+	var orig struct {
+		ID            int             `db:"id"`
+		Label         string          `db:"label"`
+		Type          string          `db:"type"`
+		QuestionOrder int             `db:"question_order"`
+		ExtraParams   json.RawMessage `db:"extra_params"`
+	}
 	if err := tx.Get(&orig, `
-        SELECT id, survey_id, label, type, question_order
-        FROM survey_questions
-        WHERE id = $1
-    `, origID); err != nil {
+		SELECT id, label, type, question_order, extra_params
+		  FROM survey_questions
+		 WHERE id = $1`, origID,
+	); err != nil {
 		return fmt.Errorf("original question lookup: %w", err)
 	}
 
-	// 4) Сбрасываем temp-запись в актуальное
+	// 4) Обновляем temp-запись, включая extra_params
 	if _, err := tx.Exec(`
-        UPDATE survey_questions_temp
-           SET label           = $1,
-               type            = $2,
-               question_order  = $3,
-               question_state  = 'ACTUAL',
-               updated_at      = NOW()
-         WHERE id = $4
-    `, orig.Label, orig.Type, orig.QuestionOrder, questionTempID); err != nil {
+		UPDATE survey_questions_temp
+		   SET label         = $1,
+			   type          = $2,
+			   question_order= $3,
+			   extra_params  = $4,
+			   question_state= 'ACTUAL',
+			   updated_at    = NOW()
+		 WHERE id = $5`,
+		orig.Label, orig.Type, orig.QuestionOrder,
+		orig.ExtraParams,
+		questionTempID,
+	); err != nil {
 		return fmt.Errorf("reset temp question: %w", err)
 	}
 
-	// 5) Удаляем из temp все варианты ответа
+	// 5) Удаляем все temp-опции
 	if _, err := tx.Exec(`
-        DELETE FROM survey_options_temp WHERE question_id = $1
-    `, questionTempID); err != nil {
+		DELETE FROM survey_options_temp
+		WHERE question_id = $1`, questionTempID,
+	); err != nil {
 		return fmt.Errorf("clear temp options: %w", err)
 	}
 
-	// 6) Копируем из оригинальных опций в temp
+	// 6) Копируем оригинальные опции в temp
 	rows, err := tx.Queryx(`
-        SELECT id, label, option_order
-          FROM survey_options
-         WHERE question_id = $1
-    `, origID)
+		SELECT id, label, option_order
+		FROM survey_options
+		WHERE question_id = $1`, origID)
 	if err != nil {
 		return fmt.Errorf("select original options: %w", err)
 	}
@@ -351,21 +391,52 @@ func (r *questionRepository) RestoreQuestion(tx *sqlx.Tx, questionTempID int) er
 
 	for rows.Next() {
 		var o struct {
-			ID          int
-			Label       string
-			OptionOrder int
+			ID          int    `db:"id"`
+			Label       string `db:"label"`
+			OptionOrder int    `db:"option_order"`
 		}
 		if err := rows.StructScan(&o); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(`
-            INSERT INTO survey_options_temp 
-                (option_original_id, question_id, label, option_order, option_state, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, 'ACTUAL', NOW(), NOW())
-        `, o.ID, questionTempID, o.Label, o.OptionOrder); err != nil {
+			INSERT INTO survey_options_temp
+			  (option_original_id, question_id, label, option_order, option_state, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, 'ACTUAL', NOW(), NOW())
+		`, o.ID, questionTempID, o.Label, o.OptionOrder); err != nil {
 			return fmt.Errorf("insert temp option: %w", err)
 		}
 	}
 
+	return nil
+}
+
+// internal/repositories/question_repository.go
+// Добавляем метод для получения списка temp-question‑ID по опросу
+func (r *questionRepository) GetTempQuestionIDsBySurveyIDTx(
+	tx *sqlx.Tx, surveyID int,
+) ([]int, error) {
+	var ids []int
+	err := tx.Select(&ids, `
+		SELECT id FROM survey_questions_temp
+		WHERE survey_id = $1`, surveyID)
+	return ids, err
+}
+
+// UpdateQuestionExtraParams сливает переданные params в поле extra_params JSONB
+func (r *questionRepository) UpdateQuestionExtraParams(questionID int, params map[string]interface{}) error {
+	// 1) маршалим params в JSON
+	raw, err := json.Marshal(params)
+	if err != nil {
+		return fmt.Errorf("marshal extra_params: %w", err)
+	}
+	// 2) обновляем через JSONB-конкатенацию `||`
+	query := `
+      UPDATE survey_questions_temp
+      SET extra_params = extra_params || $1::jsonb,
+          updated_at = NOW()
+      WHERE id = $2`
+	if _, err := r.db.Exec(query, raw, questionID); err != nil {
+		return fmt.Errorf("update extra_params: %w", err)
+	}
 	return nil
 }

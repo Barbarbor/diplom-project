@@ -4,6 +4,7 @@ import (
 	"backend/internal/domain"
 	"backend/internal/repositories"
 	"backend/pkg/i18n"
+	"encoding/json"
 )
 
 // QuestionService отвечает за бизнес-логику работы с вопросами
@@ -22,6 +23,15 @@ func (s *QuestionService) CreateQuestion(surveyID int, questionType domain.Quest
 	defaultQuestions := map[domain.QuestionType]*domain.SurveyQuestionTemp{
 		domain.SingleChoice: {Label: i18n.T("question.service.defaultSingle"), Type: domain.SingleChoice},
 		domain.MultiChoice:  {Label: i18n.T("question.service.defaultMulti"), Type: domain.MultiChoice},
+
+		// Новые типы
+		domain.Consent:   {Label: i18n.T("question.service.defaultConsent"), Type: domain.Consent},
+		domain.Email:     {Label: i18n.T("question.service.defaultEmail"), Type: domain.Email},
+		domain.Rating:    {Label: i18n.T("question.service.defaultRating"), Type: domain.Rating},
+		domain.Date:      {Label: i18n.T("question.service.defaultDate"), Type: domain.Date},
+		domain.ShortText: {Label: i18n.T("question.service.defaultShortText"), Type: domain.ShortText},
+		domain.LongText:  {Label: i18n.T("question.service.defaultLongText"), Type: domain.LongText},
+		domain.Number:    {Label: i18n.T("question.service.defaultNumber"), Type: domain.Number},
 	}
 	question, exists := defaultQuestions[questionType]
 	if !exists {
@@ -31,6 +41,7 @@ func (s *QuestionService) CreateQuestion(surveyID int, questionType domain.Quest
 	question.SurveyID = surveyID
 	question.QuestionState = "NEW"
 	question.QuestionOriginalID = nil
+	question.ExtraParams = json.RawMessage(`{"required": true}`) // <-- вот ключевое
 	// Сохраняем в БД
 	err := s.repo.CreateQuestion(question)
 	if err != nil {
@@ -62,4 +73,8 @@ func (s *QuestionService) DeleteQuestion(id int) error {
 
 func (s *QuestionService) RestoreQuestion(id int) error {
 	return s.repo.RestoreQuestion(id)
+}
+
+func (s *QuestionService) UpdateQuestionExtraParams(questionID int, params map[string]interface{}) error {
+	return s.repo.UpdateQuestionExtraParams(questionID, params)
 }

@@ -44,7 +44,7 @@ func RegisterRoutes(
 				surveyProtected.GET("", surveyHandler.GetSurvey)
 				surveyProtected.PATCH("", surveyHandler.UpdateSurvey)
 				surveyProtected.POST("/publish", surveyHandler.PublishSurvey)
-				// surveyProtected.PUT("", surveyHandler.RestoreSurvey)
+				surveyProtected.PUT("/restore", surveyHandler.RestoreSurvey)
 				questionRoutes := surveyProtected.Group("/question")
 				{
 					questionRoutes.POST("", questionHandler.CreateQuestion)
@@ -54,11 +54,12 @@ func RegisterRoutes(
 						questionProtected.PATCH("", questionHandler.UpdateQuestion)
 						questionProtected.PATCH("/type", questionHandler.UpdateQuestionType)
 						questionProtected.PATCH("/order", questionHandler.UpdateQuestionOrder)
+						questionProtected.PATCH("/extra_params", questionHandler.UpdateExtraParams)
 						questionProtected.PUT("/restore", questionHandler.RestoreQuestion)
 						questionProtected.DELETE("", questionHandler.DeleteQuestion)
 						optionProtected := questionProtected.Group("/option/:optionId", optionMiddleware)
 						{
-							optionProtected.PATCH("", optionHandler.UpdateOptionOrder)
+							optionProtected.PATCH("/order", optionHandler.UpdateOptionOrder)
 							optionProtected.DELETE("", optionHandler.DeleteOption)
 							optionProtected.PATCH("", optionHandler.UpdateOption)
 						}
