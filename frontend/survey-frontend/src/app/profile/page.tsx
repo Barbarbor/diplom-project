@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { fetchUserProfile, saveUserProfile } from '@/api-client/profile';
-import Input from '@/components/Input';
-import Select from '@/components/Select';
-import Button from '@/components/Button';
+import Input from '@/components/common/Input';
+import Select from '@/components/common/Select';
+import Button from '@/components/common/Button';
 import { getUser } from '@/api-client/auth';
 
 const ProfilePage = () => {

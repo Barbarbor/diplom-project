@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/common/Navbar";
 import "./globals.css";
 import "../i18n";
 import { checkIsUserLogged } from "@/api-client/auth";

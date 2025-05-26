@@ -4,8 +4,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { registerUser } from "@/api-client/auth";
-import Input from "@/components/Input";
-import Button from "@/components/Button";
+import Input from "@/components/common/Input";
+import Button from "@/components/common/Button";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "next-i18next";
 

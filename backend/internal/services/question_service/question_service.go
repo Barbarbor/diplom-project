@@ -52,7 +52,7 @@ func (s *QuestionService) CreateQuestion(surveyID int, questionType domain.Quest
 }
 
 // UpdateQuestionType обновляет тип вопроса. currentState передается как параметр.
-func (s *QuestionService) UpdateQuestionType(questionID int, newType domain.QuestionType, currentState string) error {
+func (s *QuestionService) UpdateQuestionType(questionID int, newType domain.QuestionType, currentState string) (*domain.SurveyQuestionTemp, error) {
 	return s.repo.UpdateQuestionType(questionID, newType, currentState)
 }
 

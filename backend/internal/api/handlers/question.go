@@ -67,13 +67,18 @@ func (h *QuestionHandler) UpdateQuestionType(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Can`t change question type to the same type"})
 		return
 	}
+
 	// Вызываем сервис для обновления типа, передавая текущее состояние
-	if err := h.service.UpdateQuestionType(question.ID, newType, string(question.QuestionState)); err != nil {
+	updatedQuestion, err := h.service.UpdateQuestionType(question.ID, newType, string(question.QuestionState))
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	// Возвращаем обновленный вопрос
+	c.JSON(http.StatusOK, gin.H{
+		"data": updatedQuestion,
+	})
 }
 
 // UpdateQuestionLabelHandler обновляет только label вопроса.

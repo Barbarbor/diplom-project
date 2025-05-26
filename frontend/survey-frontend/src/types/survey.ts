@@ -58,6 +58,7 @@ export interface MutationResponse {
 }
 export interface SurveyDetail {
   title: string;
+  hash: string;
   creator: string;
   created_at: string;
   updated_at: string;

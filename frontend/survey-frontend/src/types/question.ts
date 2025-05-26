@@ -1,5 +1,5 @@
 // src/types/question.ts
-
+import { Option } from "./option";
 /** Тип вопроса */
 export enum QuestionType {
     SingleChoice = "single_choice",
@@ -21,23 +21,20 @@ export enum QuestionType {
     Deleted = "DELETED",
   }
   
-  /** Опция вопроса (отображается при чтении) */
-  export interface Option {
-    id: number;
-    label: string;
-    order: number;
-  }
+
   
   /** Полная структура вопроса с опциями */
   export interface SurveyQuestion {
     id: number;
+    question_original_id: number;
     survey_id: number;
     label: string;
     type: QuestionType;
     order: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extra_params: Record<string, any>;
-    options: Option[];
+    options?: Option[];
+    question_state: QuestionState;
     created_at: string; // ISO
     updated_at: string; // ISO
   }
@@ -59,7 +56,7 @@ export enum QuestionType {
   
   /** Тело обновления порядка */
   export interface UpdateQuestionOrderRequest {
-    newOrder: number;
+    new_order: number;
   }
   
   /** Тело обновления extra_params */

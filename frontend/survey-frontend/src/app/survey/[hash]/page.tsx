@@ -1,161 +1,101 @@
 'use client';
-import { useGetSurvey, useUpdateSurvey, usePublishSurvey, useRestoreSurvey } from '@/hooks/react-query/survey';
-import { useCreateQuestion, useUpdateQuestionLabel, useUpdateQuestionType, useUpdateQuestionOrder, useRestoreQuestion, useDeleteQuestion } from '@/hooks/react-query/question';
-import { useParams } from 'next/navigation';
-import { useState } from 'react';
-import { QuestionType, SurveyQuestion } from '@/types/question';
-import { SurveyState } from '@/types/survey';
 
-export default function SurveyPage() {
+import { useGetSurvey, useRestoreSurvey } from '@/hooks/react-query/survey';
+import { useCreateQuestion } from '@/hooks/react-query/question';
+import { useUpdateSurvey } from '@/hooks/react-query/survey';
+import { usePublishSurvey } from '@/hooks/react-query/survey';
+import { QuestionType } from '@/api-client/question';
+import { SurveyDetail } from '@/types/survey';
+import { useParams } from 'next/navigation';
+import QuestionBlock from '@/components/QuestionBlock';
+import EditableLabel from '@/components/questions/EditableLabel';
+import RestoreIcon from '@/components/common/RestoreIcon';
+
+export default function SurveyPageClient() {
   const params = useParams();
   const hash = params.hash as string;
+  const { data, isLoading } = useGetSurvey();
+  const createQ = useCreateQuestion();
+  const updateSurvey = useUpdateSurvey();
+  const publishSurvey = usePublishSurvey();
+  const restoreSurvey = useRestoreSurvey();
+  
+  const survey = data?.survey ?? ({} as SurveyDetail);
 
-  const { data, isLoading, error } = useGetSurvey(hash);
+  const questions = data?.survey.questions ?? [];
 
+  if (isLoading) {
+    return <>Loading</>;
+  }
 
-  const survey = data?.survey;
+  
 
-  const [title, setTitle] = useState(survey?.title);
-  const updateSurveyMutation = useUpdateSurvey();
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
+  
+  const handleTitleChange = (newTitle: string) => {
+    updateSurvey.mutate({ hash, data: { title: newTitle } });
   };
-
-  const handleTitleSave = () => {
-    updateSurveyMutation.mutate({ hash, data: { title } });
-  };
-
-  const publishSurveyMutation = usePublishSurvey();
-  const restoreSurveyMutation = useRestoreSurvey();
 
   const handlePublish = () => {
-    publishSurveyMutation.mutate(hash);
+    publishSurvey.mutate(hash);
   };
 
-  const handleRestore = () => {
-    restoreSurveyMutation.mutate(hash);
+  const onAddSingle = () => {
+    createQ.mutate({ hash, data: { type: QuestionType.SingleChoice } });
   };
 
-  const [newQuestionType, setNewQuestionType] = useState<QuestionType>(QuestionType.SingleChoice);
-  const createQuestionMutation = useCreateQuestion();
-
-  const handleCreateQuestion = () => {
-    createQuestionMutation.mutate({ hash, data: { type: newQuestionType } });
+  const handleRestoreSurvey = () => {
+    restoreSurvey.mutate(hash);
   };
-
-  const sortedQuestions = [...(survey?.questions ?? [])].sort((a, b) => a.order - b.order);
 
   return (
-    <div>
-      <h1>Survey: {survey?.title}</h1>
-      <p>State: {survey?.state}</p>
-      <p>Created by: {survey?.creator}</p>
-      <p>Created at: {survey?.created_at}</p>
-      <p>Updated at: {survey?.updated_at}</p>
+    <div className="flex min-h-screen">
+      <div className="flex-1 flex justify-center p-6">
+        <div className="max-w-3xl w-full">
+          <div className="mb-6 p-4 bg-white border border-gray-300 rounded shadow-sm">
+            <h2 className="text-xl font-semibold mb-4">Survey Details</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="font-medium">Name:</div>
+              <div>
+                <EditableLabel initialLabel={survey?.title} onLabelChange={handleTitleChange} />
+              </div>
+              <div className="font-medium">Author:</div>
+              <div>{survey.creator || 'Unknown'}</div>
+              <div className="font-medium">Created:</div>
+              <div>
+                {survey.created_at ? new Date(survey.created_at).toLocaleString() : 'Unknown'}
+              </div>
+            </div>
+            <button
+              className="mt-4 px-4 py-2 bg-green-600 text-white rounded"
+              onClick={handlePublish}
+            >
+              Publish Survey
+            </button>
+            <RestoreIcon onRestore={handleRestoreSurvey} entityType="survey" />
+          </div>
 
-      <div>
-        <input value={title} onChange={handleTitleChange} placeholder="Survey Title" />
-        <button onClick={handleTitleSave}>Save Title</button>
+          <ul className="space-y-4">
+            {questions.map((q) => (
+              <QuestionBlock key={q.id} question={q} />
+            ))}
+          </ul>
+        </div>
       </div>
 
-      {survey?.state === SurveyState.Draft && (
-        <button onClick={handlePublish}>Publish Survey</button>
-      )}
-      {/* Add condition for restore button if applicable */}
-
-      <h2>Questions</h2>
-      {sortedQuestions.map((question) => (
-        <Question key={question.id} question={question} hash={hash} />
-      ))}
-
-      <div>
-        <select
-          value={newQuestionType}
-          onChange={(e) => setNewQuestionType(e.target.value as QuestionType)}
+      <div className="fixed top-20 right-6 w-48 p-4 bg-white border border-gray-300 rounded shadow-md">
+        <button
+          className="w-full mb-2 px-4 py-2 bg-blue-600 text-white rounded"
+          onClick={onAddSingle}
         >
-          {Object.values(QuestionType).map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-        <button onClick={handleCreateQuestion}>Add Question</button>
+          Добавить вопрос
+        </button>
+        <button
+          className="w-full px-4 py-2 bg-gray-500 text-white rounded"
+          onClick={() => {}}
+        >
+          Предпросмотр
+        </button>
       </div>
-    </div>
-  );
-}
-
-interface QuestionProps {
-  question: SurveyQuestion;
-  hash: string;
-}
-
-function Question({ question, hash }: QuestionProps) {
-  const [label, setLabel] = useState(question.label);
-  const [type, setType] = useState(question.type);
-  const [order, setOrder] = useState(question.order.toString());
-
-  const updateLabelMutation = useUpdateQuestionLabel();
-  const updateTypeMutation = useUpdateQuestionType();
-  const updateOrderMutation = useUpdateQuestionOrder();
-  const restoreMutation = useRestoreQuestion();
-  const deleteMutation = useDeleteQuestion();
-
-  const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLabel(e.target.value);
-  };
-
-  const handleLabelSave = () => {
-    updateLabelMutation.mutate({ hash, questionId: question.id, data: { label } });
-  };
-
-  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setType(e.target.value as QuestionType);
-  };
-
-  const handleTypeSave = () => {
-    updateTypeMutation.mutate({ hash, questionId: question.id, data: { newType: type } });
-  };
-
-  const handleOrderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setOrder(e.target.value);
-  };
-
-  const handleOrderSave = () => {
-    const newOrder = parseInt(order, 10);
-    if (!isNaN(newOrder)) {
-      updateOrderMutation.mutate({ hash, questionId: question.id, data: { newOrder } });
-    }
-  };
-
-  const handleRestore = () => {
-    restoreMutation.mutate({ hash, questionId: question.id });
-  };
-
-  const handleDelete = () => {
-    deleteMutation.mutate({ hash, questionId: question.id });
-  };
-
-  return (
-    <div>
-      <input value={label} onChange={handleLabelChange} placeholder="Question Label" />
-      <button onClick={handleLabelSave}>Save Label</button>
-
-      <select value={type} onChange={handleTypeChange}>
-        {Object.values(QuestionType).map((t) => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </select>
-      <button onClick={handleTypeSave}>Save Type</button>
-
-      <input type="number" value={order} onChange={handleOrderChange} placeholder="Order" />
-      <button onClick={handleOrderSave}>Save Order</button>
-
-      <button onClick={handleRestore}>Restore</button>
-      <button onClick={handleDelete}>Delete</button>
     </div>
   );
 }

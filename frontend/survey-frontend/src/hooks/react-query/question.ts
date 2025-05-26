@@ -16,9 +16,9 @@ import {
 } from "@/types/question";
 import { GetSurveyResponse, SurveyQuestion } from "@/types/survey";
 import { QuestionResponse } from "@/types/question";
+import { SURVEY_QUERY_KEY } from "./survey";
 
-// Query keys
-const SURVEY_QUERY_KEY = (hash: string) => ["survey", hash];
+
 
 // Hook для создания вопроса
 export const useCreateQuestion = () => {
@@ -75,9 +75,70 @@ export const useCreateQuestion = () => {
   });
 };
 
+
+export const useUpdateStateBadge = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    void,
+    Error,
+    { hash: string; questionId: number; newState: string }
+  >({
+    mutationFn: async ({ hash, questionId, newState }) => {
+      // Проверяем текущее состояние из кэша
+      const currentSurvey = queryClient.getQueryData<GetSurveyResponse>(
+        SURVEY_QUERY_KEY(hash)
+      );
+      const currentQuestion = currentSurvey?.survey.questions.find(
+        (q) => q.id === questionId
+      );
+
+      // Логика: не обновляем, если новое состояние совпадает с текущим или равно "NEW"
+      if (
+        currentQuestion?.question_state === newState ||
+        newState === "NEW"
+      ) {
+        return; // Ничего не делаем
+      }
+    },
+    onMutate: async ({ hash, questionId, newState }) => {
+      await queryClient.cancelQueries({ queryKey: SURVEY_QUERY_KEY(hash) });
+      const previousSurvey = queryClient.getQueryData<GetSurveyResponse>(
+        SURVEY_QUERY_KEY(hash)
+      );
+
+      // Оптимистичное обновление кэша
+      if (previousSurvey) {
+        queryClient.setQueryData(SURVEY_QUERY_KEY(hash), (old: GetSurveyResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            survey: {
+              ...old.survey,
+              questions: old.survey.questions.map((q) =>
+                q.id === questionId ? { ...q, question_state: newState } : q
+              ),
+            },
+          };
+        });
+      }
+
+      return { previousSurvey };
+    },
+    // onError: (err, { hash }, context) => {
+    //   if (context?.previousSurvey) {
+    //     queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context.previousSurvey);
+    //   }
+    // },
+  });
+};
+
+
+
 // Hook для обновления метки вопроса
 export const useUpdateQuestionLabel = () => {
   const queryClient = useQueryClient();
+  const updateStateBadge = useUpdateStateBadge();
   return useMutation<
     void,
     Error,
@@ -111,31 +172,36 @@ export const useUpdateQuestionLabel = () => {
       );
       return { previousSurvey };
     },
+    onSuccess: (_, { hash, questionId }) => {
+      updateStateBadge.mutate({ hash, questionId, newState: "CHANGED" });
+    },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);
     // },
   });
 };
-
-// Hook для обновления типа вопроса
 export const useUpdateQuestionType = () => {
   const queryClient = useQueryClient();
+  const updateStateBadge = useUpdateStateBadge();
   return useMutation<
-    void,
+    SurveyQuestion, // Возвращаем обновленный вопрос
     Error,
     { hash: string; questionId: number; data: { newType: QuestionType } }
   >({
     mutationFn: async ({ hash, questionId, data }) => {
       const response = await updateQuestionType(hash, questionId, data);
-      if (!response.success) {
+      if (!response.success || !response.data) {
         throw new Error(response.error || "Failed to update question type");
       }
+      return response.data; // Возвращаем обновленный вопрос
     },
-    onMutate: async ({ hash, questionId, data }) => {
+    onMutate: async ({ hash }) => {
       await queryClient.cancelQueries({ queryKey: SURVEY_QUERY_KEY(hash) });
-      const previousSurvey = queryClient.getQueryData<GetSurveyResponse>(
-        SURVEY_QUERY_KEY(hash)
-      );
+
+    },
+    onSuccess: (question, { hash, questionId }) => {
+      // @ts-expect-error Property 'data' does not exist on type 'SurveyQuestion'.
+      const updatedQuestion = question.data;
       queryClient.setQueryData(
         SURVEY_QUERY_KEY(hash),
         (old: GetSurveyResponse | undefined) => {
@@ -145,39 +211,49 @@ export const useUpdateQuestionType = () => {
             survey: {
               ...old.survey,
               questions: old.survey.questions.map((q) =>
-                q.id === questionId ? { ...q, type: data.newType } : q
+                q.id === questionId ? updatedQuestion : q
               ),
             },
           };
         }
       );
-      return { previousSurvey };
+      updateStateBadge.mutate({ hash, questionId, newState: "CHANGED" });
     },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);
     // },
   });
 };
-
 // Hook для обновления порядка вопроса
 export const useUpdateQuestionOrder = () => {
   const queryClient = useQueryClient();
+
   return useMutation<
     void,
     Error,
     { hash: string; questionId: number; data: UpdateQuestionOrderRequest }
   >({
     mutationFn: async ({ hash, questionId, data }) => {
-      const response = await updateQuestionOrder(hash, questionId, data);
+      // Update the data object to use new_order instead of newOrder
+      const response = await updateQuestionOrder(hash, questionId, {
+        new_order: data.new_order,
+      });
+
       if (!response.success) {
         throw new Error(response.error || "Failed to update question order");
       }
+      return; // Успешное завершение
     },
     onMutate: async ({ hash, questionId, data }) => {
+      // Cancel any ongoing queries for the survey
       await queryClient.cancelQueries({ queryKey: SURVEY_QUERY_KEY(hash) });
+
+      // Store the previous survey state for rollback
       const previousSurvey = queryClient.getQueryData<GetSurveyResponse>(
         SURVEY_QUERY_KEY(hash)
       );
+
+      // Optimistic update (optional, can be removed if not needed)
       queryClient.setQueryData(
         SURVEY_QUERY_KEY(hash),
         (old: GetSurveyResponse | undefined) => {
@@ -187,7 +263,7 @@ export const useUpdateQuestionOrder = () => {
             survey: {
               ...old.survey,
               questions: old.survey.questions.map((q) =>
-                q.id === questionId ? { ...q, order: data.newOrder } : q
+                q.id === questionId ? { ...q, question_order: data.new_order } : q
               ),
             },
           };
@@ -196,14 +272,21 @@ export const useUpdateQuestionOrder = () => {
       return { previousSurvey };
     },
     // onError: (err, { hash }, context) => {
+    //   console.log('Mutation error:', err.message);
+    //   // Rollback to the previous state if the mutation fails
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);
     // },
+    onSuccess: (_, { hash }) => {
+      // Refetch the survey query to get updated data from the server
+      queryClient.refetchQueries({ queryKey: SURVEY_QUERY_KEY(hash) });
+    },
   });
 };
 
 // Hook для обновления extra_params вопроса
 export const useUpdateQuestionExtraParams = () => {
   const queryClient = useQueryClient();
+  const updateStateBadge = useUpdateStateBadge();
   return useMutation<
     void,
     Error,
@@ -239,6 +322,9 @@ export const useUpdateQuestionExtraParams = () => {
       );
       return { previousSurvey };
     },
+    onSuccess: (_, { hash, questionId }) => {
+      updateStateBadge.mutate({ hash, questionId, newState: "CHANGED" });
+    },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);
     // },
@@ -248,6 +334,7 @@ export const useUpdateQuestionExtraParams = () => {
 // Hook для восстановления вопроса
 export const useRestoreQuestion = () => {
   const queryClient = useQueryClient();
+  const updateStateBadge = useUpdateStateBadge();
   return useMutation<void, Error, { hash: string; questionId: number }>({
     mutationFn: async ({ hash, questionId }) => {
       const response = await restoreQuestion(hash, questionId);
@@ -277,6 +364,9 @@ export const useRestoreQuestion = () => {
       );
       return { previousSurvey };
     },
+    onSuccess: (_, { hash, questionId }) => {
+      updateStateBadge.mutate({ hash, questionId, newState: "ACTUAL" });
+    },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);
     // },
@@ -286,6 +376,7 @@ export const useRestoreQuestion = () => {
 // Hook для удаления вопроса
 export const useDeleteQuestion = () => {
   const queryClient = useQueryClient();
+   const updateStateBadge = useUpdateStateBadge();
   return useMutation<void, Error, { hash: string; questionId: number }>({
     mutationFn: async ({ hash, questionId }) => {
       const response = await deleteQuestion(hash, questionId);
@@ -314,6 +405,10 @@ export const useDeleteQuestion = () => {
         }
       );
       return { previousSurvey };
+      
+    },
+     onSuccess: (_, { hash, questionId }) => {
+      updateStateBadge.mutate({ hash, questionId, newState: "DELETED" });
     },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);

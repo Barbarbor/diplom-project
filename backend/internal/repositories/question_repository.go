@@ -21,6 +21,7 @@ type QuestionOptionRow struct {
 	QQuestionOriginalId *int                  `db:"q_original_id"`
 	QOrder              int                   `db:"q_order"`
 	QQuestionState      *domain.QuestionState `db:"q_state"`
+	QExtraParams        json.RawMessage       `db:"q_extra_params"`
 	QCreatedAt          sql.NullTime          `db:"q_created_at"`
 	QUpdatedAt          sql.NullTime          `db:"q_updated_at"`
 	OptionID            sql.NullInt64         `db:"o_id"`
@@ -150,6 +151,7 @@ func (r *questionRepository) GetQuestionOptionRows(surveyID int) ([]QuestionOpti
 			q.question_original_id AS q_original_id,
 			q.created_at as q_created_at,
 			q.updated_at as q_updated_at,
+			q.extra_params as q_extra_params,
 			o.id AS o_id,
 			o.question_id AS o_question_id,
 			o.option_original_id AS o_original_id,
@@ -173,15 +175,15 @@ func (r *questionRepository) GetQuestionOptionRows(surveyID int) ([]QuestionOpti
 	return rows, nil
 }
 
-// UpdateQuestionType обновляет тип вопроса в таблице survey_questions_temp.
+// UpdateQuestionType обновляет тип вопроса в таблице survey_questions_temp и возвращает обновленный вопрос.
 // Параметры:
 // - questionID: идентификатор вопроса,
 // - newType: новый тип вопроса,
 // - currentState: текущее состояние вопроса, полученное из контекста.
-func (r *questionRepository) UpdateQuestionType(questionID int, newType domain.QuestionType, currentState string) error {
+func (r *questionRepository) UpdateQuestionType(questionID int, newType domain.QuestionType, currentState string) (*domain.SurveyQuestionTemp, error) {
 	tx, err := r.db.Beginx()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	now := time.Now()
 
@@ -190,7 +192,7 @@ func (r *questionRepository) UpdateQuestionType(questionID int, newType domain.Q
 		delQuery := `DELETE FROM survey_options_temp WHERE question_id = $1`
 		if _, err := tx.Exec(delQuery, questionID); err != nil {
 			tx.Rollback()
-			return fmt.Errorf("failed to delete options: %w", err)
+			return nil, fmt.Errorf("failed to delete options: %w", err)
 		}
 
 		// Обновляем тип вопроса, оставляя состояние как NEW
@@ -200,7 +202,7 @@ func (r *questionRepository) UpdateQuestionType(questionID int, newType domain.Q
 			WHERE id = $3`
 		if _, err := tx.Exec(updateQuery, newType, now, questionID); err != nil {
 			tx.Rollback()
-			return fmt.Errorf("failed to update question type (NEW): %w", err)
+			return nil, fmt.Errorf("failed to update question type (NEW): %w", err)
 		}
 	} else if currentState == "ACTUAL" || currentState == "CHANGED" {
 		// Обновляем опции: помечаем их как DELETED
@@ -210,7 +212,7 @@ func (r *questionRepository) UpdateQuestionType(questionID int, newType domain.Q
 			WHERE question_id = $2`
 		if _, err := tx.Exec(updOptionsQuery, now, questionID); err != nil {
 			tx.Rollback()
-			return fmt.Errorf("failed to update options state: %w", err)
+			return nil, fmt.Errorf("failed to update options state: %w", err)
 		}
 
 		// Если состояние было ACTUAL, меняем его на CHANGED, иначе оставляем CHANGED
@@ -226,14 +228,30 @@ func (r *questionRepository) UpdateQuestionType(questionID int, newType domain.Q
 			WHERE id = $4`
 		if _, err := tx.Exec(updQuestionQuery, newType, newState, now, questionID); err != nil {
 			tx.Rollback()
-			return fmt.Errorf("failed to update question type (ACTUAL/CHANGED): %w", err)
+			return nil, fmt.Errorf("failed to update question type (ACTUAL/CHANGED): %w", err)
 		}
 	} else {
 		tx.Rollback()
-		return fmt.Errorf("update not allowed for question_state: %s", currentState)
+		return nil, fmt.Errorf("update not allowed for question_state: %s", currentState)
 	}
 
-	return tx.Commit()
+	// Извлекаем обновленный вопрос
+	var updatedQuestion domain.SurveyQuestionTemp
+	selectQuery := `
+		SELECT id, survey_id, label, type, question_order, extra_params, question_state, created_at, updated_at
+		FROM survey_questions_temp
+		WHERE id = $1`
+	err = tx.Get(&updatedQuestion, selectQuery, questionID)
+	if err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to fetch updated question: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &updatedQuestion, nil
 }
 
 // UpdateQuestionLabel обновляет только label для вопроса в survey_questions_temp.

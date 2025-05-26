@@ -44,7 +44,7 @@ type QuestionRepository interface {
 	GetQuestionOptionRows(surveyID int) ([]QuestionOptionRow, error)
 
 	UpdateQuestion(questionID int, newLabel string) error
-	UpdateQuestionType(questionID int, newType domain.QuestionType, currentState string) error
+	UpdateQuestionType(questionID int, newType domain.QuestionType, currentState string) (*domain.SurveyQuestionTemp, error)
 	UpdateQuestionOrder(questionID int, newOrder, currentOrder, surveyID int) error
 	UpdateQuestionExtraParams(questionID int, params map[string]interface{}) error
 

@@ -5,6 +5,7 @@ import {
   UpdateQuestionLabelRequest,
   UpdateQuestionOrderRequest,
   UpdateQuestionExtraParamsRequest,
+  SurveyQuestion,
 } from "@/types/question";
 
 /**
@@ -45,11 +46,11 @@ export const updateQuestionType = async (
   hash: string,
   questionId: number,
   data: { newType: QuestionType }
-): Promise<ApiResponse<void>> => {
-  return await request<void>({
+): Promise<ApiResponse<SurveyQuestion>> => {
+  return await request<SurveyQuestion>({
     method: "PATCH",
     prefix: "/api",
-    url: `/surveys/${hash}/question/${questionId}/type`,
+    url: `/surveys/${hash}/question/${questionId}/type${data?.newType ? `?newType=${data.newType}` : ''}`,
     data,
   });
 };

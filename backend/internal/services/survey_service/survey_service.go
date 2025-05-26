@@ -105,6 +105,7 @@ func (s *SurveyService) GetQuestionsForSurvey(surveyID int) ([]*domain.SurveyQue
 				Label:              row.QLabel,
 				Type:               domain.QuestionType(row.QType),
 				QuestionOrder:      row.QOrder,
+				ExtraParams:        row.QExtraParams,
 				CreatedAt:          row.QCreatedAt.Time,
 				UpdatedAt:          row.QUpdatedAt.Time,
 				// Если нужно, можно сохранить состояние, например:

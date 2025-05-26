@@ -7,12 +7,14 @@ import {
   UpdateSurveyRequest,
 } from '@/api-client/survey';
 import { GetSurveyResponse } from '@/types/survey';
+import { useSurveyHash } from '../survey';
 
 // Query keys
-const SURVEY_QUERY_KEY = (hash: string) => ['survey', hash];
+export const SURVEY_QUERY_KEY = (hash: string) => ['survey', hash];
 
 // Hook для получения опроса
-export const useGetSurvey = (hash: string) => {
+export const useGetSurvey = () => {
+  const hash = useSurveyHash();
   return useQuery<GetSurveyResponse, Error>({
     queryKey: SURVEY_QUERY_KEY(hash),
     queryFn: async () => {
@@ -22,7 +24,7 @@ export const useGetSurvey = (hash: string) => {
       }
       return response.data;
     },
-    enabled: !!hash,
+
   });
 };
 
@@ -64,6 +66,7 @@ export const useUpdateSurvey = () => {
 // Hook для публикации опроса
 export const usePublishSurvey = () => {
   const queryClient = useQueryClient();
+  const hash = useSurveyHash();
   return useMutation<void, Error, string>({
     mutationFn: async (hash) => {
       const response = await publishSurvey(hash);
@@ -87,6 +90,7 @@ export const usePublishSurvey = () => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);
     // },
     onSuccess: () => {
+      queryClient.refetchQueries({ queryKey: SURVEY_QUERY_KEY(hash) });
       // No need to update cache
     },
   });

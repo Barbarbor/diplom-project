@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useTranslation } from "next-i18next";
-import Profile from "./Profile";
+import Profile from "../Profile";
 import { useRouter } from "next/navigation";
 import { createSurvey } from "@/api-client/survey";
 

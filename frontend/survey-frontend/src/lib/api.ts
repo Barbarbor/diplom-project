@@ -1,5 +1,4 @@
 // lib/api.ts
-
 export type ApiRequestParams = {
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   url: string;
@@ -27,8 +26,7 @@ const request = async <T = unknown>({
   url,
   disableAuthCookie = false,
   prefix = "",
-  data,
-  cache = { disabled: true},
+  data
 }: ApiRequestParams): Promise<ApiResponse<T>> => {
   const fullUrl = `${process.env.NEXT_PUBLIC_API_URL}${prefix}${url}`;
   const headers: HeadersInit = {
@@ -42,23 +40,44 @@ const request = async <T = unknown>({
     headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: !disableAuthCookie ? "include": 'omit', // Включаем автоматическую передачу куки
-    cache: cache.disabled ? "no-store" : "force-cache",
+  
   };
+try {
+    const response = await fetch(fullUrl, fetchOptions);
 
-  const response = await fetch(fullUrl, fetchOptions);
+    if (!response.ok) {
+      const responseBody = await response.json();
+      return { error: responseBody.error, status: response.status, success: false };
+    }
 
-  if (!response.ok) {
-    const responseBody = await response.json();
-    return { error: responseBody.error, status: response.status, success: false };
+    // Проверяем статус 204 "No Content"
+    if (response.status === 204) {
+
+      return {
+        status: response.status,
+        headers: response.headers,
+        success: true,
+      };
+    }
+
+    // Парсим тело ответа, если оно есть
+    const responseData = await response.json();
+
+    return {
+      data: responseData as T,
+      status: response.status,
+      headers: response.headers,
+      success: true,
+    };
+  } catch (error) {
+    console.error('Request error:', error);
+    return {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      status: 0,
+      headers: new Headers(),
+      success: false,
+    };
   }
-
-  const responseData = await response.json();
-  return {
-    data: responseData as T,
-    status: response.status,
-    headers: response.headers,
-    success: true
-  };
 };
 
 export default request;
