@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type SurveyStatus string
 
@@ -9,14 +12,21 @@ const (
 	Completed  SurveyStatus = "completed"
 )
 
+var (
+	ErrSurveyNotFound         = errors.New("survey not found")
+	ErrInterviewAlreadyExists = errors.New("interview already exists")
+	ErrInterviewNotFound      = errors.New("interview not found")
+)
+
 // Прохождения опросов
 type SurveyInterview struct {
-	ID        int          `json:"id" db:"id"`
-	UserID    int          `json:"user_id" db:"user_id"`
+	ID        string       `json:"id" db:"id"`
+	UserID    *int         `json:"user_id" db:"user_id"`
 	SurveyID  int          `json:"survey_id" db:"survey_id"`
 	Status    SurveyStatus `json:"status" db:"status"`
 	StartTime time.Time    `json:"start_time" db:"start_time"`
 	EndTime   *time.Time   `json:"end_time,omitempty" db:"end_time"`
+	IsDemo    bool         `json:"is_demo" db:"is_demo"`
 }
 
 // Ответы на вопросы

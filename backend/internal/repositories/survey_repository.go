@@ -79,6 +79,22 @@ func (r *surveyRepository) GetSurveyByHash(hash string) (*domain.Survey, string,
 	return &survey, email, nil
 }
 
+func (r *surveyRepository) GetSurveyIdByHash(hash string) (int, error) {
+	var surveyID int
+	query := `
+		SELECT s.id
+		FROM surveys s
+		WHERE s.hash = $1`
+	if err := r.db.QueryRow(query, hash).Scan(
+		&surveyID,
+	); err != nil {
+		fmt.Print("surveyid", surveyID)
+		return -1, err
+	}
+
+	return surveyID, nil
+}
+
 func (r *surveyRepository) CheckUserAccess(userID int, surveyID int) (bool, error) {
 	var count int
 	query := `SELECT COUNT(*) FROM surveys WHERE id = $1 AND author_id = $2`
@@ -158,7 +174,7 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
 		var newID int
 		if err := tx.QueryRow(`
             INSERT INTO survey_questions
-                        (survey_id, label, type, question_order,extra_params, created_at, updated_at)
+                        (survey_id, label, type, question_order, extra_params, created_at, updated_at)
                  VALUES ($1,      $2,    $3::question_type_enum,   $4,  $5,          NOW(),      NOW())
              RETURNING id
         `, surveyID, q.Label, q.Type, q.Order, q.ExtraParams).Scan(&newID); err != nil {
@@ -176,8 +192,7 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
 		}
 	}
 
-	// 3) Обновляем «изменённые» (state = CHANGED или ACTUAL) вопросы
-	//    (например, label/type/order)
+	// 3) Обновляем «изменённые» вопросы (state = CHANGED или ACTUAL)
 	if _, err := tx.Exec(`
         UPDATE survey_questions AS real
            SET label          = tmp.label,
@@ -191,7 +206,7 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
     `, surveyID); err != nil {
 		return fmt.Errorf("sync changed questions: %w", err)
 	}
-	// приводим все их temp‑состояния к ACTUAL
+	// Приводим все их temp-состояния к ACTUAL
 	if _, err := tx.Exec(`
         UPDATE survey_questions_temp
            SET question_state = 'ACTUAL',
@@ -203,7 +218,7 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
 	}
 
 	// 4) Удаляем «помеченные на удаление» (state = DELETED)
-	//   сначала опции, потом вопросы
+	// Сначала опции, потом вопросы
 	if _, err := tx.Exec(`
         DELETE FROM survey_options
          WHERE question_id IN (
@@ -226,7 +241,7 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
     `, surveyID); err != nil {
 		return fmt.Errorf("delete real questions: %w", err)
 	}
-	// и теперь сами temp‑записи
+	// Удаляем temp-записи
 	if _, err := tx.Exec(`
         DELETE FROM survey_options_temp
          WHERE question_id IN (
@@ -244,6 +259,67 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
            AND question_state = 'DELETED'
     `, surveyID); err != nil {
 		return fmt.Errorf("delete temp questions: %w", err)
+	}
+
+	// 5) Вставляем «новые» опции (state = NEW)
+	type newOpt struct {
+		TempID     int    `db:"id"`
+		QuestionID int    `db:"question_id"`
+		Label      string `db:"label"`
+		Order      int    `db:"option_order"`
+	}
+	var toCreateOpts []newOpt
+	if err := tx.Select(&toCreateOpts, `
+        SELECT id, question_id, label, option_order
+          FROM survey_options_temp
+         WHERE question_id IN (
+             SELECT id FROM survey_questions_temp WHERE survey_id = $1
+         ) AND option_state = 'NEW'
+    `, surveyID); err != nil {
+		return fmt.Errorf("select new options: %w", err)
+	}
+	for _, opt := range toCreateOpts {
+		var newID int
+		if err := tx.QueryRow(`
+            INSERT INTO survey_options
+                        (question_id, label, option_order, created_at, updated_at)
+                 VALUES ($1,          $2,    $3,            NOW(),      NOW())
+             RETURNING id
+        `, opt.QuestionID, opt.Label, opt.Order).Scan(&newID); err != nil {
+			return fmt.Errorf("insert option #%d: %w", opt.TempID, err)
+		}
+		// Обновляем temp: привязываем original и переводим в ACTUAL
+		if _, err := tx.Exec(`
+            UPDATE survey_options_temp
+               SET option_original_id = $1,
+                   option_state       = 'ACTUAL',
+                   updated_at         = NOW()
+             WHERE id = $2
+        `, newID, opt.TempID); err != nil {
+			return fmt.Errorf("tag new temp option #%d: %w", opt.TempID, err)
+		}
+	}
+
+	// 6) Обновляем «изменённые» опции (state = ACTUAL или CHANGED)
+	if _, err := tx.Exec(`
+        UPDATE survey_options AS real
+           SET label        = tmp.label,
+               option_order = tmp.option_order,
+               updated_at   = NOW()
+          FROM survey_options_temp AS tmp
+         WHERE tmp.option_original_id = real.id
+           AND tmp.option_state IN ('ACTUAL', 'CHANGED')
+    `); err != nil {
+		return fmt.Errorf("sync changed options: %w", err)
+	}
+	// Приводим все их temp-состояния к ACTUAL
+	if _, err := tx.Exec(`
+        UPDATE survey_options_temp
+           SET option_state = 'ACTUAL',
+               updated_at   = NOW()
+         WHERE option_state IN ('ACTUAL', 'CHANGED')
+    `); err != nil {
+		return fmt.Errorf("reset temp states options: %w", err)
 	}
 
 	return tx.Commit()
@@ -266,4 +342,10 @@ func (r *surveyRepository) UpdateSurveyTitleTx(tx *sqlx.Tx, surveyID int) error 
 }
 func (r *surveyRepository) BeginTx() (*sqlx.Tx, error) {
 	return r.db.Beginx()
+}
+
+func (r *surveyRepository) FinishInterview(interviewID string, endTime time.Time) error {
+	query := "UPDATE survey_interviews SET status = 'completed', end_time = $1 WHERE id = $2"
+	_, err := r.db.Exec(query, endTime, interviewID)
+	return err
 }

@@ -8,6 +8,7 @@ import (
 	"backend/internal/db"
 	"backend/internal/repositories"
 	auth "backend/internal/services/auth_service"
+	interview "backend/internal/services/interview_service"
 	option "backend/internal/services/option_service"
 	profile "backend/internal/services/profile_service"
 	question "backend/internal/services/question_service"
@@ -45,6 +46,7 @@ func main() {
 	surveyRepo := repositories.NewSurveyRepository(database)
 	questionRepo := repositories.NewQuestionRepository(database)
 	optionRepo := repositories.NewOptionRepository(database)
+	interviewRepo := repositories.NewInterviewRepository(database)
 
 	// Инициализация сервисов
 	authService := auth.NewAuthService(authRepo)
@@ -52,6 +54,7 @@ func main() {
 	surveyService := survey.NewSurveyService(surveyRepo, questionRepo)
 	questionService := question.NewQuestionService(questionRepo)
 	optionService := option.NewOptionService(optionRepo)
+	interviewService := interview.NewInterviewService(interviewRepo, surveyRepo)
 
 	// Инициализация хэндлеров
 	authHandler := handlers.NewAuthHandler(authService)
@@ -59,10 +62,13 @@ func main() {
 	surveyHandler := handlers.NewSurveyHandler(surveyService, database)
 	questionHandler := handlers.NewQuestionHandler(questionService)
 	optionHandler := handlers.NewOptionHandler(optionService)
+	interviewHandler := handlers.NewInterviewHandler(interviewService, surveyService)
 
 	surveyAccessMiddleware := middleware.SurveyAccessMiddleware(surveyRepo)
 	questionMiddleware := middleware.QuestionMiddleware(questionRepo)
 	optionMiddleware := middleware.OptionMiddleware(optionRepo)
+	interviewMiddleware := middleware.InterviewMiddleware(interviewRepo)
+
 	// Инициализация роутера
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
@@ -73,7 +79,7 @@ func main() {
 		MaxAge:           24 * time.Hour,
 	}))
 	// Регистрация маршрутов
-	api.RegisterRoutes(router, authHandler, profileHandler, surveyHandler, questionHandler, optionHandler, surveyAccessMiddleware, questionMiddleware, optionMiddleware)
+	api.RegisterRoutes(router, authHandler, profileHandler, surveyHandler, questionHandler, optionHandler, interviewHandler, surveyAccessMiddleware, questionMiddleware, optionMiddleware, interviewMiddleware)
 
 	// Запуск сервера
 	log.Printf("Starting server on %s", cfg.ServerPort)

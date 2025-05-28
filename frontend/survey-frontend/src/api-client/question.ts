@@ -93,8 +93,8 @@ export const updateQuestionExtraParams = async (
 export const restoreQuestion = async (
   hash: string,
   questionId: number
-): Promise<ApiResponse<void>> => {
-  return await request<void>({
+): Promise<ApiResponse<SurveyQuestion>> => {
+  return await request<SurveyQuestion>({
     method: "PUT",
     prefix: "/api",
     url: `/surveys/${hash}/question/${questionId}/restore`,

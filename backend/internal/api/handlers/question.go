@@ -163,13 +163,19 @@ func (h *QuestionHandler) DeleteQuestion(c *gin.Context) {
 // PUT /api/surveys/:hash/question/:questionId/restore
 func (h *QuestionHandler) RestoreQuestion(c *gin.Context) {
 	qData, _ := c.Get("question")
+	surveyData, _ := c.Get("survey")
 	q := qData.(*domain.SurveyQuestionTemp)
+	survey, _ := surveyData.(*domain.Survey)
 
-	if err := h.service.RestoreQuestion(q.ID); err != nil {
+	// Восстанавливаем вопрос и получаем его данные
+	restoredQuestion, err := h.service.RestoreQuestion(q.ID, survey.ID)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.Status(http.StatusNoContent)
+
+	// Возвращаем данные восстановленного вопроса
+	c.JSON(http.StatusOK, gin.H{"question": restoredQuestion})
 }
 
 // UpdateExtraParams обновляет extra_params вопроса

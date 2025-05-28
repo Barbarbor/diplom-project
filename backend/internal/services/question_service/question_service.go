@@ -4,7 +4,6 @@ import (
 	"backend/internal/domain"
 	"backend/internal/repositories"
 	"backend/pkg/i18n"
-	"encoding/json"
 )
 
 // QuestionService отвечает за бизнес-логику работы с вопросами
@@ -41,7 +40,30 @@ func (s *QuestionService) CreateQuestion(surveyID int, questionType domain.Quest
 	question.SurveyID = surveyID
 	question.QuestionState = "NEW"
 	question.QuestionOriginalID = nil
-	question.ExtraParams = json.RawMessage(`{"required": true}`) // <-- вот ключевое
+	// Устанавливаем ExtraParams в зависимости от типа вопроса
+	switch questionType {
+	case domain.Consent:
+		// Для Consent экстра параметры пустые
+		question.ExtraParams = domain.ConsentExtraParams{}
+	case domain.SingleChoice:
+		question.ExtraParams = domain.SingleChoiceExtraParams{Required: true}
+	case domain.MultiChoice:
+		question.ExtraParams = domain.MultiChoiceExtraParams{Required: true}
+	case domain.Email:
+		question.ExtraParams = domain.EmailExtraParams{Required: true}
+	case domain.Rating:
+		question.ExtraParams = domain.RatingExtraParams{Required: true}
+	case domain.Date:
+		question.ExtraParams = domain.DateExtraParams{Required: true}
+	case domain.ShortText:
+		question.ExtraParams = domain.TextExtraParams{Required: true}
+	case domain.LongText:
+		question.ExtraParams = domain.TextExtraParams{Required: true}
+	case domain.Number:
+		question.ExtraParams = domain.NumberExtraParams{Required: true}
+	default:
+		return nil, domain.ErrInvalidQuestionType
+	}
 	// Сохраняем в БД
 	err := s.repo.CreateQuestion(question)
 	if err != nil {
@@ -71,10 +93,20 @@ func (s *QuestionService) DeleteQuestion(id int) error {
 	return s.repo.DeleteQuestion(id)
 }
 
-func (s *QuestionService) RestoreQuestion(id int) error {
-	return s.repo.RestoreQuestion(id)
+// RestoreQuestion восстанавливает вопрос и возвращает его данные
+func (s *QuestionService) RestoreQuestion(id int, surveyID int) (*domain.SurveyQuestionTemp, error) {
+	// Выполняем восстановление
+	err := s.repo.RestoreQuestion(id)
+	if err != nil {
+		return nil, err
+	}
+	// Получаем восстановленный вопрос из базы данных
+	question, err := s.repo.GetQuestionByID(id, surveyID)
+	if err != nil {
+		return nil, err
+	}
+	return question, nil
 }
-
 func (s *QuestionService) UpdateQuestionExtraParams(questionID int, params map[string]interface{}) error {
 	return s.repo.UpdateQuestionExtraParams(questionID, params)
 }

@@ -14,9 +14,12 @@ func RegisterRoutes(
 	surveyHandler *handlers.SurveyHandler,
 	questionHandler *handlers.QuestionHandler,
 	optionHandler *handlers.OptionHandler,
+	interviewHandler *handlers.InterviewHandler,
 	surveyAccessMiddleware gin.HandlerFunc,
 	questionMiddleware gin.HandlerFunc,
-	optionMiddleware gin.HandlerFunc) {
+	optionMiddleware gin.HandlerFunc,
+	interviewMiddleware gin.HandlerFunc,
+) {
 	api := router.Group("/api", middleware.I18nMiddleware())
 	{
 		// Authorization routes
@@ -68,13 +71,16 @@ func RegisterRoutes(
 			}
 		}
 
-		// interviewRoutes := api.Group("/interview/:hash")
-		// {
-		// 	interviewRoutes.POST("/start", interviewHandler.StartInterview)
-		// 	interviewRoutes.GET("/survey", interviewHandler.GetSurveyWithAnswers)
-		// 	interviewRoutes.PUT("/:questionId/answer", interviewHandler.UpdateQuestionAnswer)
-		// 	interviewRoutes.POST("/finish", interviewHandler.FinishInterview)
-		// }
+		interviewRoutes := api.Group("/interview/:hash")
+		{
+			interviewRoutes.POST("/start", interviewHandler.StartInterview)
+			interviewGroup := interviewRoutes.Group("", interviewMiddleware)
+			{
+				interviewGroup.GET("/survey", interviewHandler.GetSurveyWithAnswers)
+				interviewRoutes.PATCH("/:questionId/answer", interviewHandler.UpdateQuestionAnswer)
+				interviewRoutes.POST("/finish", interviewHandler.FinishInterview)
+			}
+		}
 		// statsRoutes := api.Group("/stats/:hash")
 		// {
 		// 	statsRoutes.GET("", statsHandler.GetSurveyStats)

@@ -13,7 +13,7 @@ import {
 import QuestionBody from './QuestionBody';
 import { useSurveyHash } from '@/hooks/survey';
 import RestoreIcon from './common/RestoreIcon';
-
+  
 
 interface QuestionBlockProps {
   question: SurveyQuestion;

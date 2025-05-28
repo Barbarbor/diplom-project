@@ -7,6 +7,7 @@ import (
 )
 
 var ErrInvalidQuestionType = errors.New("invalid question type")
+var ErrQuestionNotFound = errors.New("question not found")
 
 type QuestionType string
 
@@ -37,15 +38,17 @@ const (
 // SurveyQuestion представляет вопрос опроса.
 // Теперь добавляем поле QuestionOrder и удаляем Options.
 type SurveyQuestion struct {
-	ID            int             `json:"id" db:"id"`
-	SurveyID      int             `json:"survey_id" db:"survey_id"`
-	Label         string          `json:"label" db:"label"`
-	Type          QuestionType    `json:"type" db:"type"`
-	QuestionOrder int             `json:"question_order" db:"question_order"`
-	ExtraParams   json.RawMessage `json:"extra_params" db:"extra_params"`
-	Options       []Option        `json:"options,omitempty" db:"-"`
-	CreatedAt     time.Time       `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time       `json:"updated_at" db:"updated_at"`
+	ID             int             `json:"id" db:"id"`
+	SurveyID       int             `json:"survey_id" db:"survey_id"`
+	Label          string          `json:"label" db:"label"`
+	Type           QuestionType    `json:"type" db:"type"`
+	QuestionOrder  int             `json:"question_order" db:"question_order"`
+	RawExtraParams json.RawMessage `json:"-" db:"extra_params"` // Временное поле для сырых данных
+	ExtraParams    ExtraParams     `json:"extra_params" db:"-"` // Типизированные параметры
+	Options        []Option        `json:"options,omitempty" db:"-"`
+	CreatedAt      time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at" db:"updated_at"`
+	Answer         *string         `json:"answer,omitempty" db:"-"`
 }
 
 // SurveyQuestionsTemp - временная таблица для вопросов.
@@ -56,9 +59,11 @@ type SurveyQuestionTemp struct {
 	Label              string          `json:"label" db:"label"`
 	Type               QuestionType    `json:"type" db:"type"`
 	QuestionOrder      int             `json:"question_order" db:"question_order"`
-	ExtraParams        json.RawMessage `json:"extra_params" db:"extra_params"`
+	RawExtraParams     json.RawMessage `json:"-" db:"extra_params"` // Временное поле для сырых данных
+	ExtraParams        ExtraParams     `json:"extra_params" db:"-"` // Типизированные параметры
 	Options            []OptionTemp    `json:"options,omitempty" db:"-"`
 	QuestionState      QuestionState   `json:"question_state" db:"question_state"`
 	CreatedAt          time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt          time.Time       `json:"updated_at" db:"updated_at"`
+	Answer             *string         `json:"answer,omitempty" db:"-"`
 }

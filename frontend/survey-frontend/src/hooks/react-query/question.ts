@@ -330,23 +330,32 @@ export const useUpdateQuestionExtraParams = () => {
     // },
   });
 };
-
-// Hook для восстановления вопроса
 export const useRestoreQuestion = () => {
   const queryClient = useQueryClient();
-  const updateStateBadge = useUpdateStateBadge();
-  return useMutation<void, Error, { hash: string; questionId: number }>({
+
+  return useMutation<
+    SurveyQuestion, // Теперь возвращаем объект вопроса
+    Error,
+    { hash: string; questionId: number }
+  >({
     mutationFn: async ({ hash, questionId }) => {
       const response = await restoreQuestion(hash, questionId);
-      if (!response.success) {
+      if (!response.success || !response.data) {
         throw new Error(response.error || "Failed to restore question");
       }
+      return response.data;
     },
-    onMutate: async ({ hash, questionId }) => {
+    onMutate: async ({ hash}) => {
       await queryClient.cancelQueries({ queryKey: SURVEY_QUERY_KEY(hash) });
       const previousSurvey = queryClient.getQueryData<GetSurveyResponse>(
         SURVEY_QUERY_KEY(hash)
       );
+      return { previousSurvey };
+    },
+    onSuccess: (restoredQuestion, { hash }) => {
+      // @ts-expect-error Property 'question' does not exist on type 'SurveyQuestion'.
+      const question = restoredQuestion.question;
+      // Обновляем кэш данными из ответа
       queryClient.setQueryData(
         SURVEY_QUERY_KEY(hash),
         (old: GetSurveyResponse | undefined) => {
@@ -356,21 +365,18 @@ export const useRestoreQuestion = () => {
             survey: {
               ...old.survey,
               questions: old.survey.questions.map((q) =>
-                q.id === questionId ? { ...q, state: "ACTUAL" } : q
+                q.id === question.id ? question : q
               ),
             },
           };
         }
       );
-      return { previousSurvey };
-    },
-    onSuccess: (_, { hash, questionId }) => {
-      updateStateBadge.mutate({ hash, questionId, newState: "ACTUAL" });
     },
     // onError: (err, { hash }, context) => {
-    //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);
-    // },
-  });
+    //   if (context?.previousSurvey) {
+    //     queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context.previousSurvey);
+    //   }
+    })
 };
 
 // Hook для удаления вопроса

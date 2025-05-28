@@ -175,6 +175,85 @@ func (r *questionRepository) GetQuestionOptionRows(surveyID int) ([]QuestionOpti
 	return rows, nil
 }
 
+// GetSurveyQuestionsWithOptionsAndAnswers возвращает вопросы, опции и ответы для опроса
+func (r *questionRepository) GetSurveyQuestionsWithOptionsAndAnswers(
+	surveyID int,
+	interviewID string,
+	isDemo bool,
+) ([]QuestionOptionAnswerRow, error) {
+	var query string
+	var args []interface{}
+
+	if isDemo {
+		// Для демо-режима используем временные таблицы и исключаем удаленные записи
+		query = `
+            SELECT 
+                q.id AS q_id,
+                q.survey_id AS q_survey_id,
+                q.label AS q_label,
+                q.type AS q_type,
+                q.question_order AS q_order,
+                q.extra_params AS q_extra_params,
+                o.id AS o_id,
+                o.question_id AS o_question_id,
+                o.label AS o_label,
+                o.option_order AS o_order,
+                a.answer AS a_answer
+            FROM survey_questions_temp q
+            LEFT JOIN survey_options_temp o ON q.id = o.question_id AND o.option_state != 'DELETED'
+            LEFT JOIN survey_answers a ON q.id = a.question_id AND a.interview_id = $2
+            WHERE q.survey_id = $1 AND q.question_state != 'DELETED'
+            ORDER BY q.question_order, o.option_order
+        `
+		args = []interface{}{surveyID, interviewID}
+	} else {
+		// Для обычного режима используем стандартные таблицы
+		query = `
+            SELECT 
+                q.id AS q_id,
+                q.survey_id AS q_survey_id,
+                q.label AS q_label,
+                q.type AS q_type,
+                q.question_order AS q_order,
+                q.extra_params AS q_extra_params,
+                o.id AS o_id,
+                o.question_id AS o_question_id,
+                o.label AS o_label,
+                o.option_order AS o_order,
+                a.answer AS a_answer
+            FROM survey_questions q
+            LEFT JOIN survey_options o ON q.id = o.question_id
+            LEFT JOIN survey_answers a ON q.id = a.question_id AND a.interview_id = $2
+            WHERE q.survey_id = $1
+            ORDER BY q.question_order, o.option_order
+        `
+		args = []interface{}{surveyID, interviewID}
+	}
+
+	var rows []QuestionOptionAnswerRow
+	err := r.db.Select(&rows, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query survey questions with options and answers: %w", err)
+	}
+
+	return rows, nil
+}
+
+// QuestionOptionAnswerRow — структура для хранения данных из запроса
+type QuestionOptionAnswerRow struct {
+	QID          int             `db:"q_id"`
+	QSurveyID    int             `db:"q_survey_id"`
+	QLabel       string          `db:"q_label"`
+	QType        string          `db:"q_type"`
+	QOrder       int             `db:"q_order"`
+	QExtraParams json.RawMessage `db:"q_extra_params"`
+	OID          sql.NullInt64   `db:"o_id"`
+	OQuestionID  sql.NullInt64   `db:"o_question_id"`
+	OLabel       sql.NullString  `db:"o_label"`
+	OOrder       *int            `db:"o_order"`
+	AAnswer      *string         `db:"a_answer"`
+}
+
 // UpdateQuestionType обновляет тип вопроса в таблице survey_questions_temp и возвращает обновленный вопрос.
 // Параметры:
 // - questionID: идентификатор вопроса,
@@ -457,4 +536,37 @@ func (r *questionRepository) UpdateQuestionExtraParams(questionID int, params ma
 		return fmt.Errorf("update extra_params: %w", err)
 	}
 	return nil
+}
+
+func (r *questionRepository) QuestionExists(questionID int, isDemo bool) (bool, error) {
+	var query string
+	if isDemo {
+		query = "SELECT EXISTS(SELECT 1 FROM survey_questions_temp WHERE id = $1)"
+	} else {
+		query = "SELECT EXISTS(SELECT 1 FROM survey_questions WHERE id = $1)"
+	}
+
+	var exists bool
+	err := r.db.QueryRow(query, questionID).Scan(&exists)
+	return exists, err
+}
+
+func (r *questionRepository) AnswerExists(interviewID string, questionID int) (bool, error) {
+	query := "SELECT EXISTS(SELECT 1 FROM survey_answers WHERE interview_id = $1 AND question_id = $2)"
+	var exists bool
+	err := r.db.QueryRow(query, interviewID, questionID).Scan(&exists)
+	return exists, err
+}
+
+func (r *questionRepository) CreateAnswer(interviewID string, questionID int, answer string) error {
+	query := "INSERT INTO survey_answers (interview_id, question_id, answer) VALUES ($1, $2, $3)"
+	_, err := r.db.Exec(query, interviewID, questionID, answer)
+
+	return err
+}
+
+func (r *questionRepository) UpdateAnswer(interviewID string, questionID int, answer string) error {
+	query := "UPDATE survey_answers SET answer = $1 WHERE interview_id = $2 AND question_id = $3"
+	_, err := r.db.Exec(query, answer, interviewID, questionID)
+	return err
 }
