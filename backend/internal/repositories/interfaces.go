@@ -33,7 +33,9 @@ type SurveyRepository interface {
 	BeginTx() (*sqlx.Tx, error)
 	UpdateSurveyTitleTx(tx *sqlx.Tx, surveyID int) error
 
-	FinishInterview(interviewID string, endTime time.Time) error
+	FinishInterview(interviewID string, endTime time.Time, isDemo bool) error
+
+	GetSurveyStats(surveyID int) (*domain.SurveyStats, error)
 }
 
 // QuestionRepository определяет методы для работы с вопросами в БД

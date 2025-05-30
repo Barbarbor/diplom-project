@@ -40,11 +40,12 @@ type SurveysTemp struct {
 
 // SurveySummary представляет краткую информацию об опросе.
 type SurveySummary struct {
-	Title     string      `json:"title" db:"title"`
-	CreatedAt time.Time   `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time   `json:"updated_at" db:"updated_at"`
-	Hash      string      `json:"hash" db:"hash"`
-	State     SurveyState `json:"state" db:"state"`
+	Title               string      `json:"title" db:"title"`
+	CreatedAt           time.Time   `json:"created_at" db:"created_at"`
+	UpdatedAt           time.Time   `json:"updated_at" db:"updated_at"`
+	Hash                string      `json:"hash" db:"hash"`
+	State               SurveyState `json:"state" db:"state"`
+	CompletedInterviews int         `json:"completed_interviews" db:"completed_interviews"`
 }
 
 // Действия с опросами

@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -174,8 +175,6 @@ func (r *questionRepository) GetQuestionOptionRows(surveyID int) ([]QuestionOpti
 
 	return rows, nil
 }
-
-// GetSurveyQuestionsWithOptionsAndAnswers возвращает вопросы, опции и ответы для опроса
 func (r *questionRepository) GetSurveyQuestionsWithOptionsAndAnswers(
 	surveyID int,
 	interviewID string,
@@ -185,7 +184,6 @@ func (r *questionRepository) GetSurveyQuestionsWithOptionsAndAnswers(
 	var args []interface{}
 
 	if isDemo {
-		// Для демо-режима используем временные таблицы и исключаем удаленные записи
 		query = `
             SELECT 
                 q.id AS q_id,
@@ -207,7 +205,6 @@ func (r *questionRepository) GetSurveyQuestionsWithOptionsAndAnswers(
         `
 		args = []interface{}{surveyID, interviewID}
 	} else {
-		// Для обычного режима используем стандартные таблицы
 		query = `
             SELECT 
                 q.id AS q_id,
@@ -234,6 +231,15 @@ func (r *questionRepository) GetSurveyQuestionsWithOptionsAndAnswers(
 	err := r.db.Select(&rows, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query survey questions with options and answers: %w", err)
+	}
+
+	// Отладка: выведем количество строк и наличие опций
+	for _, row := range rows {
+		if row.OID.Valid {
+			log.Printf("Row with QID %d has option OID %d, Label: %s", row.QID, row.OID.Int64, row.OLabel.String)
+		} else {
+			log.Printf("Row with QID %d has no options", row.QID)
+		}
 	}
 
 	return rows, nil

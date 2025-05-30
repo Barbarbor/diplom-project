@@ -23,14 +23,38 @@ func (r *interviewRepository) InterviewExists(interviewID string) (bool, error) 
 	return exists, err
 }
 
-// CreateInterview inserts a new interview into the database
+// CreateInterview inserts a new interview into the database and increments started_interviews
 func (r *interviewRepository) CreateInterview(interview *domain.SurveyInterview) error {
-	_, err := r.db.Exec(`
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Вставляем запись в survey_interviews
+	_, err = tx.Exec(`
 		INSERT INTO survey_interviews (id, survey_id, user_id, status, start_time, end_time, is_demo)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`, interview.ID, interview.SurveyID, interview.UserID, interview.Status, interview.StartTime, interview.EndTime, interview.IsDemo)
 	if err != nil {
 		fmt.Println("ERRR", err)
+		return err
+	}
+
+	// Инкремент started_interviews только если isDemo = false
+	if !interview.IsDemo {
+		_, err = tx.Exec(`
+			UPDATE survey_stats
+			SET started_interviews = started_interviews + 1
+			WHERE survey_id = $1
+		`, interview.SurveyID)
+		if err != nil {
+			fmt.Println("ERRR updating started_interviews:", err)
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 	return nil

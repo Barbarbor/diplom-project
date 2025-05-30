@@ -2,12 +2,15 @@ import React from 'react';
 
 interface CheckboxProps {
   name: string;
+  checked?: boolean
+  onChange?: ()=> void;
+  disabled?: boolean;
 }
 
-export default function Checkbox({ name }: CheckboxProps) {
+export default function Checkbox({ onChange = ()=> {}, name, checked = false, disabled = true }: CheckboxProps) {
   return (
     <div className="mb-4">
-      <input type="checkbox" name={name} disabled className="mr-2" />
+      <input onChange={onChange} type="checkbox" name={name} disabled={disabled} className="mr-2" checked={checked} />
     </div>
   );
 }

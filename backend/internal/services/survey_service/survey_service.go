@@ -51,22 +51,24 @@ func GenerateRandomHash(n int) (string, error) {
 
 func (s *SurveyService) CreateSurvey(authorID int) (*domain.Survey, error) {
 	now := time.Now()
-	titleTemplate := i18n.T("survey.service.defaultTitle")
-	title := fmt.Sprintf(titleTemplate, now.Format("02.01.2006"))
+	titleTemplate, err := i18n.TWithData("survey.service.defaultTitle", map[string]interface{}{"Date": now.Format("02.01.2006")})
+	if err != nil {
+		return nil, fmt.Errorf("failed to process title template: %w", err)
+	}
 	hash, err := GenerateRandomHash(15)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate survey hash: %w", err)
 	}
 	state := domain.SurveyStateDraft
 
-	surveyID, err := s.surveyRepo.CreateSurvey(title, authorID, hash, state, now)
+	surveyID, err := s.surveyRepo.CreateSurvey(titleTemplate, authorID, hash, state, now)
 	if err != nil {
 		return nil, err
 	}
 
 	survey := &domain.Survey{
 		ID:        surveyID,
-		Title:     title,
+		Title:     titleTemplate,
 		AuthorID:  authorID,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -348,31 +350,31 @@ func (s *SurveyService) ValidateAnswer(question interface{}, answer *string) err
 	switch params := extraParams.(type) {
 	case domain.SingleChoiceExtraParams:
 		if params.Required && (answer == nil || *answer == "") {
-			return errors.New("answer is required")
+			return errors.New("single choice answer is required")
 		}
 	case domain.MultiChoiceExtraParams:
 		if params.Required && (answer == nil || *answer == "") {
-			return errors.New("answer is required")
+			return errors.New("multi choice answer is required")
 		}
 	case domain.EmailExtraParams:
 		if params.Required && (answer == nil || *answer == "") {
-			return errors.New("answer is required")
+			return errors.New("email answer is required")
 		}
 	case domain.RatingExtraParams:
 		if params.Required && (answer == nil || *answer == "") {
-			return errors.New("answer is required")
+			return errors.New("rating answer is required")
 		}
 	case domain.DateExtraParams:
 		if params.Required && (answer == nil || *answer == "") {
-			return errors.New("answer is required")
+			return errors.New("date answer is required")
 		}
 	case domain.TextExtraParams:
 		if params.Required && (answer == nil || *answer == "") {
-			return errors.New("answer is required")
+			return errors.New("text answer is required")
 		}
 	case domain.NumberExtraParams:
 		if params.Required && (answer == nil || *answer == "") {
-			return errors.New("answer is required")
+			return errors.New("number answer is required")
 		}
 	}
 
@@ -401,12 +403,12 @@ func (s *SurveyService) ValidateAnswer(question interface{}, answer *string) err
 			}
 		}
 	case domain.Consent:
-		if answer != nil {
-			if *answer != "true" && *answer != "false" {
-				return errors.New("invalid consent: expected 'true' or 'false'")
-			}
-		} else {
-			*answer = "false" // Значение по умолчанию для отсутствующего ответа
+		if answer == nil {
+			// Создаём новый указатель с значением "false", если ответ отсутствует
+			defaultAnswer := "false"
+			answer = &defaultAnswer
+		} else if *answer != "true" && *answer != "false" {
+			return errors.New("invalid consent: expected 'true' or 'false'")
 		}
 	case domain.Email:
 		if answer != nil {
@@ -428,19 +430,34 @@ func (s *SurveyService) ValidateAnswer(question interface{}, answer *string) err
 		}
 	case domain.Date:
 		if answer != nil {
-			date, err := time.Parse("02.01.2006", *answer)
+			date, err := time.Parse("2006-01-02", *answer)
 			if err != nil {
-				return errors.New("invalid date format: expected dd.mm.yyyy")
+				return errors.New("invalid date format: expected yyyy-mm-dd")
 			}
 			if params, ok := extraParams.(domain.DateExtraParams); ok {
 				if params.MinDate != "" {
-					minDate, _ := time.Parse("02.01.2006", params.MinDate)
+					// Парсим minDate из формата ISO 8601
+					minDate, err := time.Parse(time.RFC3339, params.MinDate)
+					if err != nil {
+						return fmt.Errorf("invalid minDate format: %w", err)
+					}
+					// Приводим к началу дня для корректного сравнения
+					minDate = time.Date(minDate.Year(), minDate.Month(), minDate.Day(), 0, 0, 0, 0, minDate.Location())
+					fmt.Println("mindate", minDate)
 					if date.Before(minDate) {
 						return errors.New("date is before minDate")
 					}
 				}
 				if params.MaxDate != "" {
-					maxDate, _ := time.Parse("02.01.2006", params.MaxDate)
+					// Парсим maxDate из формата ISO 8601
+					maxDate, err := time.Parse(time.RFC3339, params.MaxDate)
+					if err != nil {
+						return fmt.Errorf("invalid maxDate format: %w", err)
+					}
+					// Приводим к началу дня для корректного сравнения
+					maxDate = time.Date(maxDate.Year(), maxDate.Month(), maxDate.Day(), 0, 0, 0, 0, maxDate.Location())
+					fmt.Println("maxdate", maxDate)
+					fmt.Println("date", date)
 					if date.After(maxDate) {
 						return errors.New("date is after maxDate")
 					}
@@ -504,9 +521,13 @@ func (s *SurveyService) FinishInterview(surveyID int, interviewID string, isDemo
 	}
 
 	// Завершаем интервью
-	if err := s.surveyRepo.FinishInterview(interviewID, time.Now()); err != nil {
+	if err := s.surveyRepo.FinishInterview(interviewID, time.Now(), isDemo); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (s *SurveyService) GetSurveyStats(surveyID int) (*domain.SurveyStats, error) {
+	return s.surveyRepo.GetSurveyStats(surveyID)
 }

@@ -1,10 +1,12 @@
 import request, { ApiResponse } from "@/lib/api";
+import { SurveyStats } from "@/types/stats";
 import {
   CreateSurveyResponse,
   GetSurveysResponse,
   GetSurveyResponse,
   UpdateSurveyRequest,
 } from "@/types/survey";
+
 
 /**
  * Создать новый опрос. Клиентский вызов.
@@ -77,3 +79,11 @@ export const restoreSurvey = async (hash: string): Promise<ApiResponse<void>> =>
 };
 export type { UpdateSurveyRequest };
 
+
+export async function getSurveyStats(hash: string): Promise<ApiResponse<SurveyStats>> {
+ return await request<SurveyStats>({
+    method: "GET",
+    prefix: "/api",
+    url: `/surveys/${hash}/stats`,
+  });
+}

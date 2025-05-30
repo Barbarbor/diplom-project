@@ -5,12 +5,29 @@ import {
   publishSurvey,
   restoreSurvey,
   UpdateSurveyRequest,
+  getSurveyStats,
+  getSurveys,
 } from '@/api-client/survey';
-import { GetSurveyResponse } from '@/types/survey';
+import { GetSurveyResponse, GetSurveysResponse } from '@/types/survey';
 import { useSurveyHash } from '../survey';
+import { SurveyStats } from '@/types/stats';
 
 // Query keys
 export const SURVEY_QUERY_KEY = (hash: string) => ['survey', hash];
+
+export const useGetSurveys = () => {
+  return useQuery<GetSurveysResponse, Error>({
+    queryKey: ["surveys"],
+    queryFn: async () => {
+      const response = await getSurveys();
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to fetch survey');
+      }
+      return response.data;
+    },
+
+  });
+};
 
 // Hook для получения опроса
 export const useGetSurvey = () => {
@@ -126,3 +143,17 @@ export const useRestoreSurvey = () => {
     },
   });
 };
+
+export function useGetSurveyStats(hash: string) {
+  return useQuery<SurveyStats, Error>({
+    queryKey: ['surveyStats', hash],
+     queryFn: async () => {
+      const response = await getSurveyStats(hash);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to fetch survey stats');
+      }
+      return response.data;
+    },
+    enabled: !!hash, // Запрос выполняется только если hash существует
+  });
+}

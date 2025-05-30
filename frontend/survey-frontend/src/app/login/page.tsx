@@ -34,18 +34,21 @@ const LoginPage = () => {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: LoginFormData) => {
-    const response = await loginUser(data);
-    if (response.status >= 400) {
-      console.log(response.error);
-      setError("root", {
-        type: "server",
-        message: response.error,
-      });
-    } else {
-      router.push("/");
-    }
-  };
+
+
+const onSubmit = async (data: LoginFormData) => {
+  const response = await loginUser(data);
+  if (response.status >= 400) {
+    console.log(response.error);
+    setError("root", {
+      type: "server",
+      message: response.error,
+    });
+  } else {
+    router.push("/");
+    router.refresh();
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

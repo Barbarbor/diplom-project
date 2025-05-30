@@ -28,7 +28,7 @@ const Navbar = ({ withProfile }: { withProfile?: boolean }) => {
         <button onClick={handleCreateSurvey} className="hover:underline">
           {t("auth.create_survey")}
         </button>
-        <a href="/surveylist" className="hover:underline">
+        <a href="/surveyslist" className="hover:underline">
           {t("auth.surveys_list")}
         </a>
       </div>

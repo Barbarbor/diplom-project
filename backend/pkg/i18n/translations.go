@@ -1,6 +1,8 @@
 package i18n
 
 import (
+	"bytes"
+	"html/template"
 	"strings"
 )
 
@@ -126,6 +128,7 @@ func SetLanguageProvider(provider LanguageProvider) {
 	langProvider = provider
 }
 
+// T возвращает перевод для заданного ключа
 func T(key string) string {
 	if langProvider == nil {
 		return key // Fallback if no provider is set
@@ -147,4 +150,37 @@ func T(key string) string {
 		}
 	}
 	return key
+}
+
+// TWithData возвращает перевод с подстановкой данных
+func TWithData(key string, data interface{}) (string, error) {
+	if langProvider == nil {
+		return key, nil // Fallback if no provider is set
+	}
+	lang := langProvider.GetLang()
+	parts := strings.SplitN(key, ".", 3)
+	if len(parts) != 3 {
+		return key, nil
+	}
+	entity, layer, keyName := parts[0], parts[1], parts[2]
+
+	if entityMap, ok := Translations[lang]; ok {
+		if layerMap, ok := entityMap[entity]; ok {
+			if keyMap, ok := layerMap[layer]; ok {
+				if val, ok := keyMap[keyName]; ok {
+					tmpl, err := template.New("translation").Parse(val)
+					if err != nil {
+						return val, err
+					}
+					var buf bytes.Buffer
+					err = tmpl.Execute(&buf, data)
+					if err != nil {
+						return val, err
+					}
+					return buf.String(), nil
+				}
+			}
+		}
+	}
+	return key, nil
 }

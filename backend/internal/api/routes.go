@@ -44,6 +44,7 @@ func RegisterRoutes(
 			surveyRoutes.GET("", surveyHandler.GetSurveys)
 			surveyProtected := surveyRoutes.Group("/:hash", surveyAccessMiddleware)
 			{
+				surveyProtected.GET("/stats", surveyHandler.GetSurveyStats)
 				surveyProtected.GET("", surveyHandler.GetSurvey)
 				surveyProtected.PATCH("", surveyHandler.UpdateSurvey)
 				surveyProtected.POST("/publish", surveyHandler.PublishSurvey)
@@ -77,13 +78,10 @@ func RegisterRoutes(
 			interviewGroup := interviewRoutes.Group("", interviewMiddleware)
 			{
 				interviewGroup.GET("/survey", interviewHandler.GetSurveyWithAnswers)
-				interviewRoutes.PATCH("/:questionId/answer", interviewHandler.UpdateQuestionAnswer)
-				interviewRoutes.POST("/finish", interviewHandler.FinishInterview)
+				interviewGroup.PATCH("/:questionId/answer", interviewHandler.UpdateQuestionAnswer)
+				interviewGroup.POST("/finish", interviewHandler.FinishInterview)
 			}
 		}
-		// statsRoutes := api.Group("/stats/:hash")
-		// {
-		// 	statsRoutes.GET("", statsHandler.GetSurveyStats)
-		// }
+
 	}
 }

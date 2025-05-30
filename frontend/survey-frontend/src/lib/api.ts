@@ -44,7 +44,8 @@ const request = async <T = unknown>({
   };
 try {
     const response = await fetch(fullUrl, fetchOptions);
-
+      console.log('resp', response)
+      console.log('body', response.body)
     if (!response.ok) {
       const responseBody = await response.json();
       return { error: responseBody.error, status: response.status, success: false };
@@ -59,7 +60,6 @@ try {
         success: true,
       };
     }
-
     // Парсим тело ответа, если оно есть
     const responseData = await response.json();
 

@@ -145,3 +145,15 @@ func (h *SurveyHandler) RestoreSurvey(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+// GetSurveyStats - хэндлер для маршрута /stats/:hash
+func (h *SurveyHandler) GetSurveyStats(c *gin.Context) {
+	surveyData, _ := c.Get("survey")
+	survey := surveyData.(*domain.Survey)
+	stats, err := h.surveyService.GetSurveyStats(survey.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, stats)
+}

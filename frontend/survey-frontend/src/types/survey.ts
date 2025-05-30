@@ -27,6 +27,7 @@ export interface SurveySummary {
   updated_at: string; // ISO
   hash: string;
   state: SurveyState;
+  completed_interviews: number;
 }
 
 /** Ответ сервера при запросе списка опросов */
