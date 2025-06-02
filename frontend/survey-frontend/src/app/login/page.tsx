@@ -85,7 +85,7 @@ const onSubmit = async (data: LoginFormData) => {
         <button
           type="button"
           onClick={() => router.push("/register")}
-          className="mt-4 text-blue-500 hover:underline"
+          className="mt-4 ml-4  text-blue-500 hover:underline"
         >
           {t("auth.switch_to_register")}
         </button>

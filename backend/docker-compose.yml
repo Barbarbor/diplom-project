@@ -23,7 +23,6 @@ services:
       - "8000:8000"
     depends_on:
       - postgres
-      - redis
     environment:
       DATABASE_URL: "postgres://postgres:12345@postgres:5432/surveydb?sslmode=disable"
       REDIS_ADDR: "redis:6379"
@@ -45,17 +44,6 @@ services:
     networks:
       - survey_network
 
-  redis:
-    image: redis:latest
-    container_name: survey_redis
-    restart: always
-    ports:
-      - "6379:6379"
-    networks:
-      - survey_network
-    volumes:
-      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 networks:
   survey_network:
     driver: bridge

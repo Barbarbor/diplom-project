@@ -529,5 +529,29 @@ func (s *SurveyService) FinishInterview(surveyID int, interviewID string, isDemo
 }
 
 func (s *SurveyService) GetSurveyStats(surveyID int) (*domain.SurveyStats, error) {
-	return s.surveyRepo.GetSurveyStats(surveyID)
+	stats, err := s.surveyRepo.GetSurveyStats(surveyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get survey stats: %w", err)
+	}
+
+	// Вычисляем среднее время прохождения анкеты
+	var totalDuration time.Duration
+	var completedCount int
+	for _, interviewTime := range stats.InterviewTimes {
+		if !interviewTime.EndTime.IsZero() && !interviewTime.StartTime.IsZero() {
+			totalDuration += interviewTime.EndTime.Sub(interviewTime.StartTime)
+			completedCount++
+		}
+	}
+
+	// Вычисляем среднее время в секундах
+	var averageCompletionTime float64
+	if completedCount > 0 {
+		averageCompletionTime = totalDuration.Seconds() / float64(completedCount)
+	}
+
+	// Устанавливаем среднее время в статистику
+	stats.AverageCompletionTime = averageCompletionTime
+
+	return stats, nil
 }

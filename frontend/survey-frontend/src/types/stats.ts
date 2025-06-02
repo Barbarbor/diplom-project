@@ -16,5 +16,6 @@ export interface QuestionStats {
 export interface SurveyStats {
   started_interviews: number;
   completed_interviews: number;
+  average_completion_time: number;
   questions: QuestionStats[];
 }

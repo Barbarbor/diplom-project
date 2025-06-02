@@ -21,13 +21,14 @@ import { QuestionType } from "@/types/question";
 import { useGetInterviewId } from "@/hooks/interview";
 import { useParams, useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
+import { Block } from "@/components/common/Block";
 
 export default function PollPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const isDemo = searchParams.get('isDemo');
-  console.log('isdemo', isDemo)
+
   const hash = params.hash as string;
   const {
     interviewId,
@@ -172,8 +173,8 @@ export default function PollPage() {
   if (!data) return <div>Данные опроса недоступны</div>;
 
   return (
+
     <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Опрос</h1>
       {data.questions.map((question) => {
         const error = validationErrors[question.id];
         switch (question.type) {

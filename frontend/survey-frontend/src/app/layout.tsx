@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/common/Navbar";
 import "./globals.css";
 import "../i18n";
-import { checkIsUserLogged } from "@/api-client/auth";
 import I18nWrapper from "@/components/I18nWrapper";
 import QueryProvider from './providers';
-
+import { checkIsUserLogged } from "@/api-client/auth";
+import Navbar from "@/components/common/Navbar";
+import Footer from "@/components/common/Footer";
+import WithPathname from "@/components/common/WithPathname";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -19,14 +20,20 @@ export default async function RootLayout({
 }>) {
   const isLogged = await checkIsUserLogged();
 
+
   return (
     <html lang="ru">
-      <body>
+      <body className="flex flex-col min-h-screen">
         <QueryProvider>
-        <I18nWrapper>
-          <Navbar withProfile={isLogged} />
-          {children}
-        </I18nWrapper>
+          <I18nWrapper>
+            <WithPathname restrictedPaths={['/landing', '/poll', '/privacy','/terms', '/contacts']}>
+            <Navbar withProfile={isLogged} />
+            </WithPathname>
+            <main className="flex-grow">{children}</main>
+             <WithPathname restrictedPaths={['/landing', '/poll', '/privacy','/terms', '/contacts']}>
+            <Footer />
+            </WithPathname>
+          </I18nWrapper>
         </QueryProvider>
       </body>
     </html>

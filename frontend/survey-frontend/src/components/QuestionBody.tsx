@@ -60,10 +60,20 @@ export default function QuestionBody({ question }: Props) {
   };
 
   return (
-    <div className="mt-2">
-      <EditableLabel initialLabel={label} onLabelChange={handleLabelChange} />
+    <div className="space-y-4">
+      {/* Label Section */}
+      <div>
+        <EditableLabel initialLabel={label} onLabelChange={handleLabelChange} />
+      </div>
+
+      {/* Question Body Section */}
+      <div>
+        {renderQuestionComponent()}
+      </div>
+
+
+      {/* Extra Params Section */}
       <ExtraParams question={question} hash={hash} />
-      {renderQuestionComponent()}
     </div>
   );
 }

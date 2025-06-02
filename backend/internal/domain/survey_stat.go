@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 // Статистика опросов
 type SurveyStat struct {
 	ID             int     `json:"id" db:"id"`
@@ -10,9 +12,16 @@ type SurveyStat struct {
 
 // Определяем структуры данных
 type SurveyStats struct {
-	StartedInterviews   int             `json:"started_interviews" db:"started_interviews"`
-	CompletedInterviews int             `json:"completed_interviews" db:"completed_interviews"`
-	Questions           []QuestionStats `json:"questions" db:"-"`
+	StartedInterviews     int             `json:"started_interviews" db:"started_interviews"`
+	CompletedInterviews   int             `json:"completed_interviews" db:"completed_interviews"`
+	AverageCompletionTime float64         `json:"average_completion_time" db:"-"` // Новое поле для среднего времени
+	Questions             []QuestionStats `json:"questions" db:"-"`
+	InterviewTimes        []InterviewTime `json:"-" db:"-"`
+}
+
+type InterviewTime struct {
+	StartTime time.Time `json:"start_time" db:"start_time"`
+	EndTime   time.Time `json:"end_time" db:"end_time"`
 }
 
 type QuestionStats struct {

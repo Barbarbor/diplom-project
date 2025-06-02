@@ -461,8 +461,19 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 		}
 		questions[i].Answers = answers
 	}
+	var interviewTimes []domain.InterviewTime
+	err = r.db.Select(&interviewTimes, `
+        SELECT start_time, end_time
+        FROM survey_interviews
+        WHERE survey_id = $1
+        AND status = 'completed'
+    `, surveyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get interview times for survey %d: %w", surveyID, err)
+	}
 
 	// Собираем результат
 	stats.Questions = questions
+	stats.InterviewTimes = interviewTimes
 	return &stats, nil
 }

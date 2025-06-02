@@ -5,20 +5,42 @@ import { checkIsUserLogged } from "./api-client/auth";
 export async function middleware(request: NextRequest) {
   const isUserLogged = await checkIsUserLogged();
 
-  // Проверяем, посещает ли пользователь страницы /login или /register
   const url = request.nextUrl.clone();
-  if (
-    (url.pathname === "/login" || url.pathname === "/register") &&
-    isUserLogged
-  ) {
-    url.pathname = "/"; // Перенаправляем на главную
+    const response = NextResponse.next();
+
+  // Проверяем, посещает ли пользователь страницы /login или /register
+  if ((url.pathname === "/login" || url.pathname === "/register" || url.pathname === '/') && isUserLogged) {
+    url.pathname = "/surveyslist";
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  // Проверяем, если пользователь не зарегистрирован и пытается зайти на защищённые страницы
+  if (!isUserLogged) {
+    const protectedPaths = [
+      "/surveyslist",
+      "/survey/:hash",
+      "/survey/:hash/stats",
+      "/"
+    ];
+
+    const isProtectedPath = protectedPaths.some((path) => {
+      if (!path.includes(":hash")) {
+        return url.pathname === path;
+      }
+      const regexPath = path.replace(":hash", "[^/]+");
+      const regex = new RegExp(`^${regexPath}$`);
+      return regex.test(url.pathname);
+    });
+
+    if (isProtectedPath) {
+      url.pathname = "/landing";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  return response;
 }
 
-// Указываем, на какие маршруты применять middleware
 export const config = {
-  matcher: ["/login", "/register"],
+  matcher: ["/login", "/register", "/surveyslist", "/survey/:path*", "/landing", "/poll/:path*"],
 };

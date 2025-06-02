@@ -71,7 +71,7 @@ func RegisterRoutes(
 				}
 			}
 		}
-
+		// interviewId передаётся через query-парам interviewId
 		interviewRoutes := api.Group("/interview/:hash")
 		{
 			interviewRoutes.POST("/start", interviewHandler.StartInterview)

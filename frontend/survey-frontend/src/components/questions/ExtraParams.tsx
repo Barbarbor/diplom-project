@@ -45,7 +45,7 @@ export default function ExtraParams({ question, hash }: ExtraParamsProps) {
       case 'required':
         return (
           <ToggleParam
-            label="Required"
+            label="Обязательный"
             value={question.extra_params?.required || false}
             onChange={(value) => handleParamChange('required', value)}
           />
@@ -65,7 +65,7 @@ export default function ExtraParams({ question, hash }: ExtraParamsProps) {
       case 'starsCount':
         return (
           <SelectParam
-            label="Stars Count"
+            label="Количество звёзд"
             value={question.extra_params?.starsCount || 5}
             options={[5, 6, 7, 8, 9, 10]}
             onChange={(value) => handleParamChange('starsCount', value)}
@@ -89,13 +89,15 @@ export default function ExtraParams({ question, hash }: ExtraParamsProps) {
   if (!params || params.length === 0) return null;
 
   return (
-    <div className="mt-4">
-      <h3 className="text-lg font-semibold">Extra Parameters</h3>
-      {params.map((param) => (
-        <div key={param} className="mt-2">
-          {renderParamComponent(param)}
-        </div>
-      ))}
+    <div>
+      <h3 className="text-lg font-semibold mb-2">Дополнительные параметры</h3>
+      <div className="space-y-2">
+        {params.map((param) => (
+          <div key={param}>
+            {renderParamComponent(param)}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,13 +1,12 @@
-// src/components/RestoreIcon.tsx
 import React, { useState } from 'react';
 
-
 interface RestoreIconProps {
-  onRestore: () => void; // Функция для вызова мутации
-  entityType: 'survey' | 'question'; // Тип сущности (опрос или вопрос)
+  onRestore: () => void;
+  entityType: 'survey' | 'question';
+  disabled?: boolean; // Добавляем пропс для дизейбла
 }
 
-export default function RestoreIcon({ onRestore, entityType }: RestoreIconProps) {
+export default function RestoreIcon({ onRestore, entityType, disabled = false }: RestoreIconProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleRestore = () => {
@@ -18,9 +17,12 @@ export default function RestoreIcon({ onRestore, entityType }: RestoreIconProps)
   return (
     <>
       <button
-        onClick={() => setIsModalOpen(true)}
-        className="text-gray-500 hover:text-gray-700 cursor-pointer"
+        onClick={() => !disabled && setIsModalOpen(true)} // Открываем модал только если не disabled
+        className={`text-gray-500 hover:text-gray-700 cursor-pointer ${
+          disabled ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
         title={`Restore ${entityType}`}
+        disabled={disabled}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

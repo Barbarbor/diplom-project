@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { useTranslation } from "next-i18next";
+import Image from 'next/image';
 import Profile from "../Profile";
 import { useRouter } from "next/navigation";
 import { createSurvey } from "@/api-client/survey";
@@ -10,28 +11,40 @@ const Navbar = ({ withProfile }: { withProfile?: boolean }) => {
   const router = useRouter();
 
   const handleCreateSurvey = async () => {
-    // Вызываем API для создания опроса
     const response = await createSurvey();
     if (response.status >= 400) {
       console.error("Failed to create survey:", response.error);
-      // Можно показать уведомление об ошибке (toast)
     } else if (response.data?.hash) {
-      // Перенаправляем пользователя на страницу опроса по хэшу
       router.push(`/survey/${response.data.hash}`);
     }
   };
 
   return (
-    <nav className="bg-gray-800 text-white p-4 flex justify-between items-center">
-      <div className="flex space-x-4">
-        {/* Заменяем ссылку на кнопку, которая вызывает создание опроса */}
+    <nav className="bg-gray-100 text-black p-4 flex justify-between items-center">
+      <div className="flex items-center space-x-4">
+        {/* Логотип */}
+        <div className="relative w-[150px] h-[55px]">
+          <a href="/landing">
+            <Image
+              src="/logo.jpg"
+              alt="Logo"
+              layout="fill"
+              objectFit="cover"
+            />
+          </a>
+        </div>
+
+        {/* Кнопка «Создать опрос» */}
         <button onClick={handleCreateSurvey} className="hover:underline">
           {t("auth.create_survey")}
         </button>
+
+        {/* Ссылка на список опросов */}
         <a href="/surveyslist" className="hover:underline">
           {t("auth.surveys_list")}
         </a>
       </div>
+
       <Profile withProfile={withProfile} />
     </nav>
   );

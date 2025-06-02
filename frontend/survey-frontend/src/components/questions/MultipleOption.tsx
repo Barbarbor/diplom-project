@@ -27,7 +27,7 @@ export default function MultipleOption({ question, hash }: Props) {
         className="mt-2 text-sm text-blue-600"
         onClick={() => createOpt.mutate({ hash, questionId: question.id })}
       >
-        + Add option
+        Добавить опцию
       </button>
     </div>
   );

@@ -13,12 +13,22 @@ import {
 import QuestionBody from './QuestionBody';
 import { useSurveyHash } from '@/hooks/survey';
 import RestoreIcon from './common/RestoreIcon';
-  
+import { Block } from './common/Block';
 
 interface QuestionBlockProps {
   question: SurveyQuestion;
 }
-
+ const questionTypes = {
+     [QuestionType.SingleChoice]:  'Одиночный выбор',
+     [QuestionType.MultiChoice]: 'Множественный выбор' ,
+    [QuestionType.Consent]: 'Согласие' ,
+    [QuestionType.Rating]: 'Рейтинг' ,
+    [QuestionType.ShortText]: 'Короткий текст' ,
+    [QuestionType.LongText]: 'Длинный текст' ,
+    [QuestionType.Date]: 'Дата' ,
+    [QuestionType.Number]: 'Число' ,
+    [QuestionType.Email]: 'Email' ,
+ };
 export default function QuestionBlock({ question }: QuestionBlockProps) {
   const hash = useSurveyHash();
 
@@ -47,33 +57,40 @@ export default function QuestionBlock({ question }: QuestionBlockProps) {
   };
 
   return (
-    <div className="border p-4 rounded mb-4 bg-white shadow-sm">
+    <Block>
       <div className="flex justify-between items-start">
-        {/* Middle: Form fields */}
-        <div className="flex-1">
-          {/* Type selector */}
-          <Select
-            label="Тип вопроса"
-            name="questionType"
-            value={question.type}
-            options={Object.values(QuestionType).map((t) => ({
-              value: t,
-              label: t.replace('_', ' '),
-            }))}
-            onChange={onTypeChange}
-          />
+        {/* Left: Question Details */}
+        <div className="flex-1 space-y-4">
+          {/* Question Type */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Тип вопроса</h3>
+            <Select
+              label=""
+              name="questionType"
+              value={question.type}
+              options={Object.values(QuestionType).map((t) => ({
+                value: t,
+                label: questionTypes[t],
+              }))}
+              onChange={onTypeChange}
+            />
+          </div>
+
+          {/* Question Body (Label, Body, Extra Params) */}
           <QuestionBody question={question} />
         </div>
 
         {/* Right: Actions */}
-        <div className="space-y-2 text-right">
+        <div className="flex items-center space-x-2">
+          <button onClick={() => setDeleteModalOpen(true)} className="text-gray-500 hover:text-gray-700">
+            🗑️
+          </button>
+          <RestoreIcon
+            onRestore={handleRestoreQuestion}
+            entityType="question"
+            disabled={question.question_state === 'NEW'}
+          />
           <StateBadge state={question.question_state} />
-
-          {question.question_state !== 'NEW' && (
-            <RestoreIcon onRestore={handleRestoreQuestion} entityType="question" />
-          )}
-
-          <button onClick={() => setDeleteModalOpen(true)}>🗑️</button>
         </div>
       </div>
 
@@ -98,6 +115,6 @@ export default function QuestionBlock({ question }: QuestionBlockProps) {
       >
         Вы действительно хотите удалить этот вопрос?
       </Modal>
-    </div>
+    </Block>
   );
 }

@@ -6,6 +6,7 @@ import { useGetSurveys } from "@/hooks/react-query/survey";
 import { useRouter } from "next/navigation";
 import { SurveyState } from "@/types/survey";
 
+const SURVEY_STATE = {'DRAFT': 'Черновик', 'ACTIVE': 'Активный'}
 const SurveysListPage = () => {
   const { data, isLoading, error } = useGetSurveys();
   const router = useRouter();
@@ -112,7 +113,7 @@ const SurveysListPage = () => {
                       timeZone: "UTC",
                     })}
                   </td>
-                  <td className="py-2 px-4">{survey.state}</td>
+                  <td className="py-2 px-4">{SURVEY_STATE[survey.state]}</td>
                   <td
                     className={`py-2 px-4 ${
                       survey.completed_interviews > 0

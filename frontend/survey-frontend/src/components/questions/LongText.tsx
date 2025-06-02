@@ -10,6 +10,7 @@ export default function LongText({ question }: Props) {
   return (
     <Textarea
       name={`q-${question.id}-answer`}
+      disabled={true}
       register={() => {}}
       errors={{}}
     />

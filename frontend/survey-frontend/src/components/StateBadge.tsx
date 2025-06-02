@@ -7,11 +7,14 @@ const colorMap: Record<QuestionState, string> = {
   CHANGED:'bg-yellow-200 text-yellow-800',
   DELETED:'bg-red-200 text-red-800',
 };
-
+const colorLabel = { ACTUAL: 'Актуальный',
+  NEW:    'Новый',
+  CHANGED:'Изменён',
+  DELETED:'Удалён',}
 export default function StateBadge({ state }: { state: QuestionState }) {
   return (
     <span className={`px-2 py-1 rounded text-sm ${colorMap[state]}`}>
-      {state.toLowerCase()}
+      {colorLabel[state]}
     </span>
   );
 }

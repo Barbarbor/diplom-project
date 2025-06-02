@@ -57,7 +57,7 @@ const RegisterPage = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="bg-white p-6 rounded-lg shadow-md w-full max-w-md"
       >
-        <h1 className="text-xl font-bold mb-4">{t("register.title")}</h1>
+        <h1 className="text-xl font-bold mb-4">Регистрация</h1>
 
         <Input
           label={t("auth.email.label")}
@@ -80,7 +80,7 @@ const RegisterPage = () => {
         <button
           type="button"
           onClick={() => router.push("/login")}
-          className="mt-4 text-blue-500 hover:underline"
+          className="mt-4 ml-4 text-blue-500 hover:underline"
         >
           {t("auth.switch_to_login")}
         </button>
