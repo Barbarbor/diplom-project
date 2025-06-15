@@ -162,7 +162,7 @@ func (r *questionRepository) GetQuestionOptionRows(surveyID int) ([]QuestionOpti
 			o.created_at AS o_created_at,
 			o.updated_at AS o_updated_at
 		FROM survey_questions_temp q
-		LEFT JOIN survey_options_temp o ON q.id = o.question_id
+		LEFT JOIN survey_options_temp o ON q.id = o.question_id AND o.option_state != 'DELETED'
 		WHERE q.survey_id = $1
 		ORDER BY q.question_order, o.option_order`
 	var rows []QuestionOptionRow
@@ -346,7 +346,7 @@ func (r *questionRepository) UpdateQuestion(questionID int, newLabel string) err
 		return err
 	}
 	defer tx.Rollback()
-	if err := updateEntityLabel(tx, QuestionTable, QuestionLabelField, QuestionStateField, questionID, newLabel); err != nil {
+	if err := updateEntityLabel(tx, QuestionTable, QuestionLabelField, QuestionStateField, questionID, newLabel, nil); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -393,7 +393,7 @@ func (r *questionRepository) DeleteQuestion(questionID int) error {
 		}
 	}()
 
-	return deleteEntity(tx, QuestionTable, QuestionFKField, QuestionOrderField, QuestionStateField, questionID)
+	return deleteEntity(tx, QuestionTable, QuestionFKField, QuestionOrderField, QuestionStateField, questionID, nil)
 }
 
 // Public API: сам открывает транзакцию и вызывает приватную логику

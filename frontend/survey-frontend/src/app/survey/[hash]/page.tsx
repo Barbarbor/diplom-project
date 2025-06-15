@@ -75,6 +75,7 @@ export default function SurveyPageClient() {
             <SurveyActions
               state={survey.state}
               hash={hash}
+              questionCount={questions.length}
               onAddQuestion={onAddQuestion}
               onOpenAccessModal={() => setIsAccessModalOpen(true)}
               onOpenPreviewModal={() => setIsPreviewOpen(true)}

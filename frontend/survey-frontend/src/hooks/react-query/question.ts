@@ -218,6 +218,7 @@ export const useUpdateQuestionType = () => {
         }
       );
       updateStateBadge.mutate({ hash, questionId, newState: "CHANGED" });
+      queryClient.invalidateQueries({ queryKey: SURVEY_QUERY_KEY(hash) })
     },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);

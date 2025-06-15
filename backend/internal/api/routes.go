@@ -54,6 +54,7 @@ func RegisterRoutes(
 					questionRoutes.POST("", questionHandler.CreateQuestion)
 					questionProtected := questionRoutes.Group("/:questionId", questionMiddleware)
 					{
+						questionProtected.GET("", questionHandler.GetQuestion)
 						questionProtected.POST("/option", optionHandler.CreateOption)
 						questionProtected.PATCH("", questionHandler.UpdateQuestion)
 						questionProtected.PATCH("/type", questionHandler.UpdateQuestionType)

@@ -11,7 +11,7 @@ export const registerUser = async (data: ApiUserCredentials) => {
     url: "/auth/register",
     data,
     disableAuthCookie: true,
-    cache: { disabled: true },
+  
   });
 
   return response;
@@ -23,8 +23,7 @@ export const loginUser = async (data: ApiUserCredentials) => {
     method: "POST",
     prefix: "/api",
     url: "/auth/login",
-    data,
-    cache: { disabled: true },
+    data
   });
 
   return response;
@@ -38,7 +37,7 @@ export const getUser = async () => {
     method: "GET",
     prefix: "/api",
     url: "/auth/user",
-    cache: { disabled: true },
+   
   });
 
   return response;
@@ -49,3 +48,4 @@ export const checkIsUserLogged = async () => {
 
   return !!user?.data?.user;
 };
+

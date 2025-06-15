@@ -59,7 +59,7 @@ func updateEntityOrder(tx *sqlx.Tx, table, fkField, orderField, stateField strin
 
 // deleteEntity удаляет или логически помечает запись,
 // а затем «сдвигает» порядковые номера всех последующих элементов на 1.
-func deleteEntity(tx *sqlx.Tx, table, fkField, orderField, stateField string, entityID int) error {
+func deleteEntity(tx *sqlx.Tx, table, fkField, orderField, stateField string, entityID int, questionID *int) error {
 	// 1) Получаем текущее состояние, порядковый номер и значение внешнего ключа
 	var (
 		state        string
@@ -76,13 +76,11 @@ func deleteEntity(tx *sqlx.Tx, table, fkField, orderField, stateField string, en
 
 	// 2) Удаляем или логически помечаем
 	if state == "NEW" {
-		// удаляем совсем
 		delSQL := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, table)
 		if _, err := tx.Exec(delSQL, entityID); err != nil {
 			return fmt.Errorf("failed to delete NEW entity %d from %s: %w", entityID, table, err)
 		}
 	} else {
-		// помечаем DELETED
 		markSQL := fmt.Sprintf(
 			`UPDATE %s SET %s = 'DELETED', updated_at = NOW() WHERE id = $1`,
 			table, stateField,
@@ -106,24 +104,42 @@ func deleteEntity(tx *sqlx.Tx, table, fkField, orderField, stateField string, en
 		return fmt.Errorf("failed to shift %s after deleting entity %d: %w", table, entityID, err)
 	}
 
+	// 4) Если таблица survey_options_temp, обновляем состояние вопроса
+	if table == "survey_options_temp" && questionID != nil {
+		// Используем переданный questionID
+		if err := updateActualState(tx, "survey_questions_temp", "question_state", *questionID); err != nil {
+			return fmt.Errorf("failed to update question state for option %d: %w", entityID, err)
+		}
+	}
+
 	return nil
 }
 
-// --- универсальный метод для смены label ---
-func updateEntityLabel(tx *sqlx.Tx, table, labelField, stateField string, entityID int, newLabel string) error {
+// updateEntityLabel обновляет метку и, если таблица survey_options_temp, изменяет состояние вопроса
+func updateEntityLabel(tx *sqlx.Tx, table, labelField, stateField string, entityID int, newLabel string, questionID *int) error {
 	if _, err := tx.Exec(
 		fmt.Sprintf("UPDATE %s SET %s=$1, updated_at=NOW() WHERE id=$2", table, labelField),
 		newLabel, entityID,
 	); err != nil {
 		return fmt.Errorf("failed to update label: %w", err)
 	}
-	// если было ACTUAL — ставим CHANGED
-	if _, err := tx.Exec(
-		fmt.Sprintf("UPDATE %s SET %s='CHANGED' WHERE id=$1 AND %s='ACTUAL'", table, stateField, stateField),
-		entityID,
-	); err != nil {
-		return fmt.Errorf("failed to update state: %w", err)
+
+	// Если таблица survey_options_temp, обновляем состояние вопроса
+	if table == "survey_options_temp" && questionID != nil {
+		// Используем переданный questionID
+		if err := updateActualState(tx, "survey_questions_temp", "question_state", *questionID); err != nil {
+			return fmt.Errorf("failed to update question state for option %d: %w", entityID, err)
+		}
+	} else {
+		// Если не survey_options_temp, обновляем состояние только для ACTUAL
+		if _, err := tx.Exec(
+			fmt.Sprintf("UPDATE %s SET %s='CHANGED' WHERE id=$1 AND %s='ACTUAL'", table, stateField, stateField),
+			entityID,
+		); err != nil {
+			return fmt.Errorf("failed to update state: %w", err)
+		}
 	}
+
 	return nil
 }
 

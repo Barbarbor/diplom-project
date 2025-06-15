@@ -11,13 +11,11 @@ export default function WithPathname({
   restrictedPaths: string[];
 }) {
   const pathname = usePathname();
-  console.log('pathname', pathname);
-    console.log('paths', restrictedPaths);
   // Проверяем, начинается ли pathname с любого из restrictedPaths
   const shouldRender = !restrictedPaths?.some((restrictedPath) =>
     pathname.startsWith(restrictedPath)
   );
-
+console.log('render?', shouldRender)
   // Если путь не ограничен, рендерим children, иначе ничего не рендерим
   return shouldRender ? <>{children}</> : null;
 }

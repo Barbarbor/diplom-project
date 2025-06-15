@@ -7,30 +7,31 @@ import { QuestionType } from '@/api-client/question';
 import { SurveyState } from '@/types/survey';
 
 interface SurveyActionsProps {
-state: SurveyState;
+  state: SurveyState;
   hash: string;
-  onAddQuestion: (type: QuestionType) => void; // Изменяем сигнатуру, чтобы принимать тип вопроса
+  questionCount: number; // Новый проп для количества вопросов
+  onAddQuestion: (type: QuestionType) => void;
   onOpenAccessModal: () => void;
   onOpenPreviewModal: () => void;
   onRestoreSurvey: () => void;
 }
 
 export const SurveyActions = ({
-    state,
+  state,
   hash,
+  questionCount,
   onAddQuestion,
   onOpenAccessModal,
   onOpenPreviewModal,
   onRestoreSurvey,
 }: SurveyActionsProps) => {
   const publishSurvey = usePublishSurvey();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Состояние для выпадающего списка
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handlePublish = () => {
     publishSurvey.mutate(hash);
   };
 
-  // Доступные типы вопросов
   const questionTypes = [
     { type: QuestionType.SingleChoice, label: 'Одиночный выбор' },
     { type: QuestionType.MultiChoice, label: 'Множественный выбор' },
@@ -43,10 +44,9 @@ export const SurveyActions = ({
     { type: QuestionType.Email, label: 'Email' },
   ];
 
-  // Обработчик выбора типа вопроса
   const handleSelectQuestionType = (type: QuestionType) => {
     onAddQuestion(type);
-    setIsDropdownOpen(false); // Закрываем список после выбора
+    setIsDropdownOpen(false);
   };
 
   return (
@@ -74,8 +74,9 @@ export const SurveyActions = ({
           )}
         </div>
         <button
-          className="w-full px-4 py-2 bg-gray-500 text-white rounded"
-          onClick={onOpenPreviewModal}
+          className={`w-full px-4 py-2 bg-gray-500 text-white rounded ${questionCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          onClick={questionCount === 0 ? undefined : onOpenPreviewModal}
+          disabled={questionCount === 0}
         >
           Предпросмотр
         </button>

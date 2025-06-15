@@ -81,8 +81,8 @@ type OptionRepository interface {
 	GetMaxOptionOrder(questionID int) (int, error)
 	GetOptionById(questionID, optionID int) (*domain.OptionTemp, error)
 	UpdateOptionOrder(optionID, newOrder, currentOrder, questionID int) error
-	UpdateOptionLabel(optionID int, newLabel string) error
-	DeleteOption(optionID int) error
+	UpdateOptionLabel(optionID int, newLabel string, questionID int) error
+	DeleteOption(optionID int, questionID int) error
 }
 
 type InterviewRepository interface {

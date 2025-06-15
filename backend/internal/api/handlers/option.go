@@ -67,10 +67,12 @@ func (h *OptionHandler) UpdateOptionOrder(c *gin.Context) {
 
 // DELETE /api/.../option/:optionId
 func (h *OptionHandler) DeleteOption(c *gin.Context) {
+	questionData, _ := c.Get("question")
+	question := questionData.(*domain.SurveyQuestionTemp)
 	optData, _ := c.Get("option")
 	opt := optData.(*domain.OptionTemp)
 
-	if err := h.optionService.DeleteOption(opt); err != nil {
+	if err := h.optionService.DeleteOption(opt, question.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -79,6 +81,8 @@ func (h *OptionHandler) DeleteOption(c *gin.Context) {
 
 // PATCH /api/.../option/:optionId
 func (h *OptionHandler) UpdateOption(c *gin.Context) {
+	questionData, _ := c.Get("question")
+	question := questionData.(*domain.SurveyQuestionTemp)
 	optData, _ := c.Get("option")
 	opt := optData.(*domain.OptionTemp)
 
@@ -89,7 +93,7 @@ func (h *OptionHandler) UpdateOption(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": i18n.T("option.handler.invalidData")})
 		return
 	}
-	if err := h.optionService.UpdateOptionLabel(opt, body.Label); err != nil {
+	if err := h.optionService.UpdateOptionLabel(opt, body.Label, question.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -1,6 +1,5 @@
 -- 20250526163500_alter_survey_interviews_id.up.sql
 
-BEGIN;
 
 -- 1) Удаляем внешний ключ survey_answers_interview_id_fkey из survey_answers
 ALTER TABLE survey_answers DROP CONSTRAINT survey_answers_interview_id_fkey;
@@ -21,4 +20,3 @@ ALTER TABLE survey_interviews ADD PRIMARY KEY (id);
 ALTER TABLE survey_answers ADD CONSTRAINT survey_answers_interview_id_fkey
     FOREIGN KEY (interview_id) REFERENCES survey_interviews(id);
 
-COMMIT;

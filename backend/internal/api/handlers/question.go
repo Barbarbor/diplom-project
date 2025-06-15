@@ -202,3 +202,23 @@ func (h *QuestionHandler) UpdateExtraParams(c *gin.Context) {
 	// По желанию можно вернуть обновлённый объект
 	c.Status(http.StatusNoContent)
 }
+
+// GetQuestion возвращает данные вопроса из контекста
+// Маршрут: GET /api/surveys/:hash/question/:questionId
+func (h *QuestionHandler) GetQuestion(c *gin.Context) {
+	// Извлекаем вопрос из контекста
+	qData, exists := c.Get("question")
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": i18n.T("question.handler.questionNotFound")})
+		return
+	}
+
+	question, ok := qData.(*domain.SurveyQuestionTemp)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": i18n.T("question.handler.invalidData")})
+		return
+	}
+
+	// Возвращаем данные вопроса
+	c.JSON(http.StatusOK, gin.H{"question": question})
+}

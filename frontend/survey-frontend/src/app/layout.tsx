@@ -7,6 +7,7 @@ import { checkIsUserLogged } from "@/api-client/auth";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import WithPathname from "@/components/common/WithPathname";
+import CookieBanner from "@/components/banners/CookieBanner";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -32,6 +33,9 @@ export default async function RootLayout({
             <main className="flex-grow">{children}</main>
              <WithPathname restrictedPaths={['/landing', '/poll', '/privacy','/terms', '/contacts']}>
             <Footer />
+            </WithPathname>
+             <WithPathname restrictedPaths={['/privacy']}>
+            <CookieBanner />
             </WithPathname>
           </I18nWrapper>
         </QueryProvider>

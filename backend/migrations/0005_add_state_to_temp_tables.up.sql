@@ -1,4 +1,4 @@
-BEGIN;
+
 
 -- 1. Создаем ENUM question_state, если он не существует
 DO $$
@@ -23,5 +23,3 @@ ALTER TABLE survey_questions_temp
 -- 4. Добавляем новое поле option_state в таблицу survey_options_temp
 ALTER TABLE survey_options_temp
   ADD COLUMN IF NOT EXISTS option_state option_state NOT NULL DEFAULT 'ACTUAL';
-
-COMMIT;

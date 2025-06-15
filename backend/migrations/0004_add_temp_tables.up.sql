@@ -1,4 +1,4 @@
-BEGIN;
+
 
 -- 1. Создаем таблицу surveys_temp для временного хранения опросов.
 -- Убираем поле state, так как оно остается в основной таблице.
@@ -50,4 +50,3 @@ CREATE INDEX IF NOT EXISTS idx_survey_options_temp_question_id
 CREATE INDEX IF NOT EXISTS idx_survey_options_temp_original_id 
     ON survey_options_temp(option_original_id);
 
-COMMIT;

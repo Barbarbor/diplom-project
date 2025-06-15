@@ -38,6 +38,7 @@ export const useCreateOption = () => {
           }
           return question;
         });
+        queryClient.invalidateQueries({ queryKey: SURVEY_QUERY_KEY(hash)});
         return {
           ...old,
           survey: {
@@ -73,7 +74,7 @@ export const useUpdateOptionLabel = () => {
           if (question.id === questionId) {
             return {
               ...question,
-              options: question.options.map((option) =>
+              options: question?.options?.map((option) =>
                 option.id === optionId ? { ...option, label: data.label } : option
               ),
             };
@@ -88,7 +89,11 @@ export const useUpdateOptionLabel = () => {
           },
         };
       });
+      
       return { previousSurvey };
+    },
+    onSuccess: (_, { hash }) => {
+      queryClient.invalidateQueries({ queryKey: SURVEY_QUERY_KEY(hash) }); // Инвалидация
     },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);
@@ -119,7 +124,7 @@ export const useUpdateOptionOrder = () => {
           if (question.id === questionId) {
             return {
               ...question,
-              options: question.options.map((option) =>
+              options: question?.options?.map((option) =>
                 option.id === optionId ? { ...option, order: data.new_order } : option
               ),
             };
@@ -165,7 +170,7 @@ export const useDeleteOption = () => {
           if (question.id === questionId) {
             return {
               ...question,
-              options: question.options.filter((option) => option.id !== optionId),
+              options: question?.options?.filter((option) => option.id !== optionId),
             };
           }
           return question;
@@ -178,7 +183,11 @@ export const useDeleteOption = () => {
           },
         };
       });
+
       return { previousSurvey };
+    },
+    onSuccess: (_, { hash }) => {
+      queryClient.invalidateQueries({ queryKey: SURVEY_QUERY_KEY(hash) }); // Инвалидация
     },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);

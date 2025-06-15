@@ -68,27 +68,27 @@ func (r *optionRepository) UpdateOptionOrder(optionID, newOrder, currentOrder, q
 	return tx.Commit()
 }
 
-func (r *optionRepository) UpdateOptionLabel(optionID int, newLabel string) error {
+func (r *optionRepository) UpdateOptionLabel(optionID int, newLabel string, questionID int) error {
 	tx, err := r.db.Beginx()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	if err := updateEntityLabel(tx, OptionTable, OptionLabelField, OptionStateField, optionID, newLabel); err != nil {
+	if err := updateEntityLabel(tx, OptionTable, OptionLabelField, OptionStateField, optionID, newLabel, &questionID); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
 }
 
-func (r *optionRepository) DeleteOption(optionID int) error {
+func (r *optionRepository) DeleteOption(optionID int, questionID int) error {
 	tx, err := r.db.Beginx()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	if err := deleteEntity(tx, OptionTable, OptionFKField, OptionOrderField, OptionStateField, optionID); err != nil {
+	if err := deleteEntity(tx, OptionTable, OptionFKField, OptionOrderField, OptionStateField, optionID, &questionID); err != nil {
 		tx.Rollback()
 		return err
 	}

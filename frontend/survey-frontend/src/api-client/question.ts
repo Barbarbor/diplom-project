@@ -116,3 +116,14 @@ export const deleteQuestion = async (
 };
 
 export { QuestionType };
+
+export const getQuestion = async (
+  hash: string,
+  questionId: number
+): Promise<ApiResponse<SurveyQuestion>> => {
+  return await request<SurveyQuestion>({
+    method: "GET",
+    prefix: "/api",
+    url: `/surveys/${hash}/question/${questionId}`,
+  });
+};
