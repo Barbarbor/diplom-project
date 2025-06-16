@@ -86,9 +86,9 @@ export default function SurveyPageClient() {
           <SurveyDistribution hash={hash} />
 
           <ul className="space-y-4">
-            {questions.map((q) => (
-              <QuestionBlock key={q.id} question={q} />
-            ))}
+           {[...questions].sort((a, b) => (a.question_order || 0) - (b.question_order || 0)).map((q) => (
+  <QuestionBlock key={q.id} question={q} />
+))}
           </ul>
         </div>
       </div>

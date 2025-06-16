@@ -1,7 +1,7 @@
 import React from 'react';
 import { SurveyQuestion } from '@/types/question';
 import { useCreateOption } from '@/hooks/react-query/option';
-import MultipleOptionItem from './MultipleOptionItem'; // Новый компонент для одной опции
+import MultipleOptionItem from './MultipleOptionItem';
 
 interface Props {
   question: SurveyQuestion;
@@ -11,10 +11,13 @@ interface Props {
 export default function MultipleOption({ question, hash }: Props) {
   const createOpt = useCreateOption();
 
+  // Создаём копию массива и сортируем по option_order
+  const sortedOptions = [...(question.options || [])].sort((a, b) => a.option_order - b.option_order);
+
   return (
     <div>
       <ul className="space-y-2">
-        {question.options?.map((opt) => (
+        {sortedOptions.map((opt) => (
           <MultipleOptionItem
             key={opt.id}
             hash={hash}

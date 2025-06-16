@@ -350,6 +350,24 @@ func (r *surveyRepository) PublishSurvey(surveyID int) error {
 		return fmt.Errorf("reset temp states options: %w", err)
 	}
 
+	// 7) Удаляем опции, помеченные на удаление (option_state = DELETED)
+	if _, err := tx.Exec(`
+        DELETE FROM survey_options
+         WHERE id IN (
+             SELECT option_original_id
+               FROM survey_options_temp
+              WHERE option_state = 'DELETED'
+         )
+    `); err != nil {
+		return fmt.Errorf("delete real options with state DELETED: %w", err)
+	}
+	if _, err := tx.Exec(`
+        DELETE FROM survey_options_temp
+         WHERE option_state = 'DELETED'
+    `); err != nil {
+		return fmt.Errorf("delete temp options with state DELETED: %w", err)
+	}
+
 	return tx.Commit()
 }
 

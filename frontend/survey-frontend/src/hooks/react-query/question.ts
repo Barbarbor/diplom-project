@@ -53,7 +53,7 @@ export const useCreateQuestion = () => {
            // survey_id: old.survey.id || 0, // Assume survey_id is available or adjust
             label: data.question.label || "",
             type: data.question.type,
-            order: data.question.order,
+            question_order: data.question.question_order,
             extra_params: data.question.extra_params || {},
             options: data.question.options || [],
             created_at: data.question.created_at,
@@ -287,7 +287,6 @@ export const useUpdateQuestionOrder = () => {
 // Hook для обновления extra_params вопроса
 export const useUpdateQuestionExtraParams = () => {
   const queryClient = useQueryClient();
-  const updateStateBadge = useUpdateStateBadge();
   return useMutation<
     void,
     Error,
@@ -323,8 +322,8 @@ export const useUpdateQuestionExtraParams = () => {
       );
       return { previousSurvey };
     },
-    onSuccess: (_, { hash, questionId }) => {
-      updateStateBadge.mutate({ hash, questionId, newState: "CHANGED" });
+    onSuccess: (_, { hash }) => {
+      queryClient.invalidateQueries({ queryKey: SURVEY_QUERY_KEY(hash) })
     },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);
@@ -371,7 +370,9 @@ export const useRestoreQuestion = () => {
             },
           };
         }
+        
       );
+       queryClient.refetchQueries({ queryKey: SURVEY_QUERY_KEY(hash) });
     },
     // onError: (err, { hash }, context) => {
     //   if (context?.previousSurvey) {
@@ -391,31 +392,18 @@ export const useDeleteQuestion = () => {
         throw new Error(response.error || "Failed to delete question");
       }
     },
-    onMutate: async ({ hash, questionId }) => {
+    onMutate: async ({ hash }) => {
       await queryClient.cancelQueries({ queryKey: SURVEY_QUERY_KEY(hash) });
       const previousSurvey = queryClient.getQueryData<GetSurveyResponse>(
         SURVEY_QUERY_KEY(hash)
       );
-      queryClient.setQueryData(
-        SURVEY_QUERY_KEY(hash),
-        (old: GetSurveyResponse | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            survey: {
-              ...old.survey,
-              questions: old.survey.questions.filter(
-                (q) => q.id !== questionId
-              ),
-            },
-          };
-        }
-      );
+     
       return { previousSurvey };
       
     },
      onSuccess: (_, { hash, questionId }) => {
       updateStateBadge.mutate({ hash, questionId, newState: "DELETED" });
+      queryClient.invalidateQueries({ queryKey: SURVEY_QUERY_KEY(hash) })
     },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);

@@ -30,7 +30,7 @@ export enum QuestionType {
     survey_id: number;
     label: string;
     type: QuestionType;
-    order: number;
+    question_order: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extra_params: Record<string, any>;
     options?: Option[];

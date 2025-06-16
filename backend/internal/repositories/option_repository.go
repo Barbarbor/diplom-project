@@ -27,6 +27,19 @@ func (r *optionRepository) GetMaxOptionOrder(questionID int) (int, error) {
 }
 
 func (r *optionRepository) CreateOption(option *domain.OptionTemp) error {
+	// Начинаем транзакцию
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
 	// Получаем следующий порядковый номер для опции
 	maxOrder, err := r.GetMaxOptionOrder(option.QuestionID)
 	if err != nil {
@@ -40,7 +53,31 @@ func (r *optionRepository) CreateOption(option *domain.OptionTemp) error {
 		INSERT INTO survey_options_temp (option_original_id, question_id, label, option_order, option_state, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
 		RETURNING id, option_order`
-	return r.db.QueryRow(query, option.OptionOriginalID, option.QuestionID, option.Label, nextOrder, option.OptionState).Scan(&option.ID, &option.OptionOrder)
+	if err := tx.QueryRow(query, option.OptionOriginalID, option.QuestionID, option.Label, nextOrder, option.OptionState).Scan(&option.ID, &option.OptionOrder); err != nil {
+		return fmt.Errorf("failed to insert option: %w", err)
+	}
+
+	// Обновляем question_state на CHANGED, если текущий статус ACTUAL
+	updateQuery := `
+		UPDATE survey_questions_temp
+		SET question_state = 'CHANGED',
+			updated_at = NOW()
+		WHERE id = $1 AND question_state = 'ACTUAL'`
+	result, err := tx.Exec(updateQuery, option.QuestionID)
+	if err != nil {
+		return fmt.Errorf("failed to update question state: %w", err)
+	}
+
+	// Проверяем, было ли обновление (если rowsAffected == 0, значит статус не был ACTUAL)
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		// Это не ошибка, просто статус уже не ACTUAL, можно продолжить
+	}
+
+	return nil
 }
 
 func (r *optionRepository) GetOptionById(questionID, optionID int) (*domain.OptionTemp, error) {

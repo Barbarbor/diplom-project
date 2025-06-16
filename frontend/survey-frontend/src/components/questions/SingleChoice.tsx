@@ -11,10 +11,13 @@ interface Props {
 export default function SingleChoice({ question, hash }: Props) {
   const createOpt = useCreateOption();
 
+  // Создаём копию массива и сортируем по option_order
+  const sortedOptions = [...(question.options || [])].sort((a, b) => a.option_order - b.option_order);
+
   return (
     <div>
       <ul className="space-y-2">
-        {question.options?.map(opt => (
+        {sortedOptions.map(opt => (
           <SingleOption
             key={opt.id}
             hash={hash}

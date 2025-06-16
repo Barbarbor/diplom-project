@@ -49,7 +49,7 @@ func NewQuestionRepository(db *sqlx.DB) QuestionRepository {
 // учитывая только те вопросы, у которых question_state != 'DELETED'.
 func (r *questionRepository) GetQuestionMaxOrder(surveyID int) (int, error) {
 	var maxOrder int
-	query := `SELECT COALESCE(MAX(question_order), 0) FROM survey_questions_temp WHERE survey_id = $1 AND question_state != 'DELETED'`
+	query := `SELECT COALESCE(MAX(question_order), 0) FROM survey_questions_temp WHERE survey_id = $1`
 	err := r.db.Get(&maxOrder, query, surveyID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get max question order: %w", err)
@@ -451,8 +451,8 @@ func (r *questionRepository) restoreQuestionTx(tx *sqlx.Tx, questionTempID int) 
 	}
 	if err := tx.Get(&orig, `
 		SELECT id, label, type, question_order, extra_params
-		  FROM survey_questions
-		 WHERE id = $1`, origID,
+		FROM survey_questions
+		WHERE id = $1`, origID,
 	); err != nil {
 		return fmt.Errorf("original question lookup: %w", err)
 	}
@@ -460,13 +460,13 @@ func (r *questionRepository) restoreQuestionTx(tx *sqlx.Tx, questionTempID int) 
 	// 4) Обновляем temp-запись, включая extra_params
 	if _, err := tx.Exec(`
 		UPDATE survey_questions_temp
-		   SET label         = $1,
-			   type          = $2,
-			   question_order= $3,
-			   extra_params  = $4,
-			   question_state= 'ACTUAL',
-			   updated_at    = NOW()
-		 WHERE id = $5`,
+		SET label         = $1,
+			type          = $2,
+			question_order= $3,
+			extra_params  = $4,
+			question_state= 'ACTUAL',
+			updated_at    = NOW()
+		WHERE id = $5`,
 		orig.Label, orig.Type, orig.QuestionOrder,
 		orig.ExtraParams,
 		questionTempID,
@@ -474,24 +474,34 @@ func (r *questionRepository) restoreQuestionTx(tx *sqlx.Tx, questionTempID int) 
 		return fmt.Errorf("reset temp question: %w", err)
 	}
 
-	// 5) Удаляем все temp-опции
+	// 5) Обновляем временные опции в survey_options_temp
+	// a) Удаляем опции со статусом NEW
 	if _, err := tx.Exec(`
 		DELETE FROM survey_options_temp
-		WHERE question_id = $1`, questionTempID,
+		WHERE question_id = $1 AND option_state = 'NEW'`,
+		questionTempID,
 	); err != nil {
-		return fmt.Errorf("clear temp options: %w", err)
+		return fmt.Errorf("delete NEW temp options: %w", err)
 	}
 
-	// 6) Копируем оригинальные опции в temp
+	// b) Актуализируем данные для всех оставшихся опций (DELETED, ACTUAL, CHANGED) на основе survey_options
+	// Сначала получаем список оригинальных опций
 	rows, err := tx.Queryx(`
 		SELECT id, label, option_order
 		FROM survey_options
-		WHERE question_id = $1`, origID)
+		WHERE question_id = $1`,
+		origID,
+	)
 	if err != nil {
 		return fmt.Errorf("select original options: %w", err)
 	}
 	defer rows.Close()
 
+	// Подготовим мапу для быстрого доступа к оригинальным данным
+	origOptions := make(map[int]struct {
+		Label       string
+		OptionOrder int
+	})
 	for rows.Next() {
 		var o struct {
 			ID          int    `db:"id"`
@@ -501,12 +511,24 @@ func (r *questionRepository) restoreQuestionTx(tx *sqlx.Tx, questionTempID int) 
 		if err := rows.StructScan(&o); err != nil {
 			return err
 		}
+		origOptions[o.ID] = struct {
+			Label       string
+			OptionOrder int
+		}{Label: o.Label, OptionOrder: o.OptionOrder}
+	}
+
+	// Обновляем все опции с option_original_id на основе данных из survey_options
+	for origOptionID, origData := range origOptions {
 		if _, err := tx.Exec(`
-			INSERT INTO survey_options_temp
-			  (option_original_id, question_id, label, option_order, option_state, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, 'ACTUAL', NOW(), NOW())
-		`, o.ID, questionTempID, o.Label, o.OptionOrder); err != nil {
-			return fmt.Errorf("insert temp option: %w", err)
+			UPDATE survey_options_temp
+			SET label = $1,
+				option_order = $2,
+				option_state = 'ACTUAL',
+				updated_at = NOW()
+			WHERE question_id = $3 AND option_original_id = $4`,
+			origData.Label, origData.OptionOrder, questionTempID, origOptionID,
+		); err != nil {
+			return fmt.Errorf("update temp option for original id %d: %w", origOptionID, err)
 		}
 	}
 

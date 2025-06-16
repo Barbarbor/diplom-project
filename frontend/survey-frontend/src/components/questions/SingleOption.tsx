@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Option } from '@/types/option';
 import { useUpdateOptionLabel, useDeleteOption } from '@/hooks/react-query/option';
-
 import Radio from '../common/Radio';
 import EditableLabel from './EditableLabel';
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { QuestionState } from '@/types/question';
+import { OptionState } from '@/types/option';
 
 const colorMap: Record<QuestionState, string> = {
   ACTUAL: 'bg-green-200 text-green-800',
@@ -11,7 +12,7 @@ const colorLabel = { ACTUAL: 'Актуальный',
   NEW:    'Новый',
   CHANGED:'Изменён',
   DELETED:'Удалён',}
-export default function StateBadge({ state }: { state: QuestionState }) {
+export default function StateBadge({ state }: { state: QuestionState | OptionState }) {
   return (
     <span className={`px-2 py-1 rounded text-sm ${colorMap[state]}`}>
       {colorLabel[state]}

@@ -14,7 +14,7 @@ export interface Option {
   question_id: number;
   label: string;
   option_order: number;
-  state: OptionState;
+  option_state: OptionState;
   created_at: string; // ISO
   updated_at: string; // ISO
 }

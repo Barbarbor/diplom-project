@@ -90,20 +90,6 @@ func deleteEntity(tx *sqlx.Tx, table, fkField, orderField, stateField string, en
 		}
 	}
 
-	// 3) Сдвигаем всех «последующих» на 1 влево
-	shiftSQL := fmt.Sprintf(
-		`UPDATE %s
-		 SET %s = %s - 1,
-		     updated_at = NOW()
-		 WHERE %s = $1
-		   AND %s > $2
-		   AND %s != 'DELETED'`,
-		table, orderField, orderField, fkField, orderField, stateField,
-	)
-	if _, err := tx.Exec(shiftSQL, fkValue, currentOrder); err != nil {
-		return fmt.Errorf("failed to shift %s after deleting entity %d: %w", table, entityID, err)
-	}
-
 	// 4) Если таблица survey_options_temp, обновляем состояние вопроса
 	if table == "survey_options_temp" && questionID != nil {
 		// Используем переданный questionID
