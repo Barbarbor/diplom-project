@@ -5,6 +5,7 @@ import React, { useState, useMemo } from "react";
 import { useGetSurveys } from "@/hooks/react-query/survey";
 import { useRouter } from "next/navigation";
 import { SurveyState } from "@/types/survey";
+import Spinner from "@/components/common/Spinner";
 
 const SURVEY_STATE = {'DRAFT': 'Черновик', 'ACTIVE': 'Активный'}
 const SurveysListPage = () => {
@@ -42,7 +43,7 @@ const SurveysListPage = () => {
     }
   };
 
-  if (isLoading) return <div>Загрузка...</div>;
+  if (isLoading) return <Spinner />;
   if (error) return <div>Ошибка при загрузке опросов: {error.message}</div>;
 
   return (

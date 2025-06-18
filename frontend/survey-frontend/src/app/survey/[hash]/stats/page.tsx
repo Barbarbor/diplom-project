@@ -16,6 +16,7 @@ import ExportToCsvButton from '@/components/stats-components/csvButton';
 import { Block } from '@/components/common/Block';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import Spinner from '@/components/common/Spinner';
 
 export default function SurveyStatsPage() {
   const params = useParams();
@@ -24,7 +25,7 @@ export default function SurveyStatsPage() {
   const { data, isLoading, error } = useGetSurveyStats(hash);
   console.log('data', data);
 
-  if (isLoading) return <div>Загрузка...</div>;
+  if (isLoading) return <Spinner />;
   if (error) return <div>Ошибка: {error.message}</div>;
   if (!data) return <div>Данные статистики недоступны</div>;
 

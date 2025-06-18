@@ -116,6 +116,7 @@ export const usePublishSurvey = () => {
 // Hook для восстановления опроса
 export const useRestoreSurvey = () => {
   const queryClient = useQueryClient();
+    const hash = useSurveyHash();
   return useMutation<void, Error, string>({
     mutationFn: async (hash) => {
       const response = await restoreSurvey(hash);
@@ -140,6 +141,7 @@ export const useRestoreSurvey = () => {
     // },
     onSuccess: () => {
       // No need to update cache
+      queryClient.refetchQueries({ queryKey: SURVEY_QUERY_KEY(hash) });
     },
   });
 };

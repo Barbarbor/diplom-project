@@ -14,6 +14,7 @@ import { AccessModal } from './accessModal'; // Импортируем новы�
 import { PreviewModal } from './previewModal';
 import { Block } from '@/components/common/Block';
 import { SurveyDistribution } from './surveyDistribution'; // Импортируем новый компонент
+import Spinner from '@/components/common/Spinner';
 
 
 const SURVEY_STATE = {'DRAFT': 'Черновик', 'ACTIVE': 'Активный'}
@@ -34,7 +35,7 @@ export default function SurveyPageClient() {
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
 
   if (isLoading) {
-    return <>Загрузка...</>;
+   return <Spinner />;
   }
 
   const handleTitleChange = (newTitle: string) => {

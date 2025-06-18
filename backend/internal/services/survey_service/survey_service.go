@@ -272,25 +272,24 @@ func (s *SurveyService) RestoreSurveyByID(surveyID int) (err error) {
 		}
 	}()
 
-	// 1) Обновляем только title из temp
 	if err = s.surveyRepo.UpdateSurveyTitleTx(tx, surveyID); err != nil {
 		return err
 	}
 
-	// 2) Берём все временные вопросы
 	tempIDs, err := s.questionRepo.GetTempQuestionIDsBySurveyIDTx(tx, surveyID)
 	if err != nil {
 		return fmt.Errorf("fetch temp question ids: %w", err)
 	}
 
-	// 3) Параллельно "восстанавливаем" каждый вопрос
+	// Параллельное выполнение с отдельными транзакциями
 	errCh := make(chan error, len(tempIDs))
 	var wg sync.WaitGroup
 	for _, qID := range tempIDs {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			if e := s.questionRepo.RestoreQuestionTx(tx, id); e != nil {
+			// Вызываем публичный метод, который сам открывает транзакцию
+			if e := s.questionRepo.RestoreQuestion(id); e != nil {
 				errCh <- fmt.Errorf("restore question %d: %w", id, e)
 			}
 		}(qID)

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {  useState } from 'react';
 import { SurveyQuestion, QuestionType } from '@/types/question';
 import { useUpdateQuestionLabel } from '@/hooks/react-query/question';
 import { UpdateQuestionLabelRequest } from '@/types/question';
@@ -22,10 +22,8 @@ interface Props {
 export default function QuestionBody({ question }: Props) {
   const hash = useSurveyHash();
   const updateLabel = useUpdateQuestionLabel();
-  const [label, setLabel] = useState(question.label || 'Default Label');
 
   const handleLabelChange = (newLabel: string) => {
-    setLabel(newLabel);
     const payload: UpdateQuestionLabelRequest = { label: newLabel };
     updateLabel.mutate({
       hash,
@@ -63,7 +61,7 @@ export default function QuestionBody({ question }: Props) {
     <div className="space-y-4">
       {/* Label Section */}
       <div>
-        <EditableLabel initialLabel={label} onLabelChange={handleLabelChange} />
+        <EditableLabel initialLabel={question.label} onLabelChange={handleLabelChange} />
       </div>
 
       {/* Question Body Section */}

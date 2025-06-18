@@ -16,7 +16,7 @@ export const SingleChoiceStats = ({ question }: { question: QuestionStats }) => 
       <Typography variant="h6" fontWeight="bold" mb={2}>
         {question.label}
       </Typography>
-      {question.options.map((option) => {
+      {question?.options?.map((option) => {
         const count = answerCounts[option.id] || 0;
         const percentage = totalAnswers > 0 ? (count / totalAnswers) * 100 : 0;
         return (
@@ -62,7 +62,7 @@ export const SingleChoiceStats = ({ question }: { question: QuestionStats }) => 
       <Typography variant="h6" fontWeight="bold" mb={2}>
         {question.label}
       </Typography>
-      {question.options.map((option) => {
+      {question?.options?.map((option) => {
         const count = answerCounts[option.id] || 0;
         const percentage = totalInterviews > 0 ? (count / totalInterviews) * 100 : 0;
         return (

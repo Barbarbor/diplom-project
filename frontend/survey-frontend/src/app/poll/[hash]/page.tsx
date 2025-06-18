@@ -22,6 +22,7 @@ import { useGetInterviewId } from "@/hooks/interview";
 import { useParams, useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { Block } from "@/components/common/Block";
+import Spinner from "@/components/common/Spinner";
 
 export default function PollPage() {
   const router = useRouter();
@@ -167,7 +168,7 @@ export default function PollPage() {
     }
   };
 
-  if (idLoading || surveyLoading) return <div>Загрузка...</div>;
+  if (idLoading || surveyLoading) return <Spinner />;
   if (idError || surveyError)
     return <div>Ошибка: {idError || surveyError}</div>;
   if (!data) return <div>Данные опроса недоступны</div>;

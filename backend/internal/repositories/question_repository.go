@@ -554,15 +554,21 @@ func (r *questionRepository) UpdateQuestionExtraParams(questionID int, params ma
 	if err != nil {
 		return fmt.Errorf("marshal extra_params: %w", err)
 	}
-	// 2) обновляем через JSONB-конкатенацию `||`
+
+	// 2) обновляем через JSONB-конкатенацию `||` и устанавливаем question_state
 	query := `
       UPDATE survey_questions_temp
       SET extra_params = extra_params || $1::jsonb,
-          updated_at = NOW()
+          updated_at = NOW(),
+          question_state = CASE 
+                             WHEN question_state = 'ACTUAL' THEN 'CHANGED'
+                             ELSE question_state
+                           END
       WHERE id = $2`
 	if _, err := r.db.Exec(query, raw, questionID); err != nil {
 		return fmt.Errorf("update extra_params: %w", err)
 	}
+
 	return nil
 }
 
