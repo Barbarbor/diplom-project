@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"backend/internal/domain"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -447,7 +448,13 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 		WHERE survey_id = $1
 	`, surveyID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get survey stats: %w", err)
+		if err == sql.ErrNoRows {
+			// If no stats exist, initialize with zeros
+			stats.StartedInterviews = 0
+			stats.CompletedInterviews = 0
+		} else {
+			return nil, fmt.Errorf("failed to get survey stats: %w", err)
+		}
 	}
 
 	// Шаг 2: Получаем список вопросов с raw extra_params
@@ -493,7 +500,7 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 				WHERE question_id = $1
 				ORDER BY option_order
 			`, question.ID)
-			if err != nil {
+			if err != nil && err != sql.ErrNoRows {
 				return nil, fmt.Errorf("failed to get options for question %d: %w", question.ID, err)
 			}
 			question.Options = options
@@ -509,9 +516,15 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 			AND si.status = 'completed'
 		`, question.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get answers for question %d: %w", question.ID, err)
+			if err == sql.ErrNoRows {
+				// No answers found, set to nil
+				question.Answers = nil
+			} else {
+				return nil, fmt.Errorf("failed to get answers for question %d: %w", question.ID, err)
+			}
+		} else {
+			question.Answers = answers
 		}
-		question.Answers = answers
 
 		questions = append(questions, question)
 	}
@@ -525,7 +538,12 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 		AND status = 'completed'
 	`, surveyID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get interview times for survey %d: %w", surveyID, err)
+		if err == sql.ErrNoRows {
+			// No interview times, leave as empty slice
+			interviewTimes = []domain.InterviewTime{}
+		} else {
+			return nil, fmt.Errorf("failed to get interview times for survey %d: %w", surveyID, err)
+		}
 	}
 
 	// Собираем результат
@@ -537,10 +555,4 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 	}
 
 	return &stats, nil
-}
-
-// Assuming InterviewTime is defined in domain package
-type InterviewTime struct {
-	StartTime time.Time `db:"start_time"`
-	EndTime   time.Time `db:"end_time"`
 }

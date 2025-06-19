@@ -5,6 +5,7 @@ import DatePickerParam from './extra_params/DatePickerParam';
 import NumberInputParam from './extra_params/NumberInputParam';
 import SelectParam from './extra_params/SelectParam';
 import ToggleParam from './extra_params/ToggleParam';
+import { useTranslation } from 'next-i18next';
 
 interface ExtraParamsProps {
   question: SurveyQuestion;
@@ -25,6 +26,7 @@ const extraParamsConfig: { [key in QuestionType]?: string[] } = {
 };
 
 export default function ExtraParams({ question, hash }: ExtraParamsProps) {
+  const { t } = useTranslation('translation', { keyPrefix: 'survey.question.extraParams' });
   const updateExtraParams = useUpdateQuestionExtraParams();
 
   // Функция для обновления параметров
@@ -45,39 +47,74 @@ export default function ExtraParams({ question, hash }: ExtraParamsProps) {
       case 'required':
         return (
           <ToggleParam
-            label="Обязательный"
+            label={t('required')}
             value={question.extra_params?.required || false}
             onChange={(value) => handleParamChange('required', value)}
           />
         );
       case 'minAnswersCount':
+        return (
+          <NumberInputParam
+            label={t('minAnswersCount')}
+            value={question.extra_params?.minAnswersCount || 0}
+            onChange={(value) => handleParamChange('minAnswersCount', value)}
+          />
+        );
       case 'maxAnswersCount':
+        return (
+          <NumberInputParam
+            label={t('maxAnswersCount')}
+            value={question.extra_params?.maxAnswersCount || 0}
+            onChange={(value) => handleParamChange('maxAnswersCount', value)}
+          />
+        );
       case 'maxLength':
+        return (
+          <NumberInputParam
+            label={t('maxLength')}
+            value={question.extra_params?.maxLength || 0}
+            onChange={(value) => handleParamChange('maxLength', value)}
+          />
+        );
       case 'minNumber':
+        return (
+          <NumberInputParam
+            label={t('minNumber')}
+            value={question.extra_params?.minNumber || 0}
+            onChange={(value) => handleParamChange('minNumber', value)}
+          />
+        );
       case 'maxNumber':
         return (
           <NumberInputParam
-            label={param.replace(/([A-Z])/g, ' $1').trim()}
-            value={question.extra_params?.[param] || 0}
-            onChange={(value) => handleParamChange(param, value)}
+            label={t('maxNumber')}
+            value={question.extra_params?.maxNumber || 0}
+            onChange={(value) => handleParamChange('maxNumber', value)}
           />
         );
       case 'starsCount':
         return (
           <SelectParam
-            label="Количество звёзд"
+            label={t('starsCount')}
             value={question.extra_params?.starsCount || 5}
             options={[5, 6, 7, 8, 9, 10]}
             onChange={(value) => handleParamChange('starsCount', value)}
           />
         );
       case 'minDate':
+        return (
+          <DatePickerParam
+            label={t('minDate')}
+            value={question.extra_params?.minDate || null}
+            onChange={(value) => handleParamChange('minDate', value)}
+          />
+        );
       case 'maxDate':
         return (
           <DatePickerParam
-            label={param.replace(/([A-Z])/g, ' $1').trim()}
-            value={question.extra_params?.[param] || null}
-            onChange={(value) => handleParamChange(param, value)}
+            label={t('maxDate')}
+            value={question.extra_params?.maxDate || null}
+            onChange={(value) => handleParamChange('maxDate', value)}
           />
         );
       default:
@@ -90,7 +127,7 @@ export default function ExtraParams({ question, hash }: ExtraParamsProps) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Дополнительные параметры</h3>
+      <h3 className="text-lg font-semibold mb-2">{t('title')}</h3>
       <div className="space-y-2">
         {params.map((param) => (
           <div key={param}>

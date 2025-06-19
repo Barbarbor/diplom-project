@@ -9,23 +9,27 @@ import { SurveyDetail } from '@/types/survey';
 import { useParams } from 'next/navigation';
 import QuestionBlock from '@/components/QuestionBlock';
 import EditableLabel from '@/components/questions/EditableLabel';
-import { SurveyActions } from './surveyActions'; // Импортируем новый компонент
-import { AccessModal } from './accessModal'; // Импортируем новый компонент
+import { SurveyActions } from './surveyActions';
+import { AccessModal } from './accessModal';
 import { PreviewModal } from './previewModal';
 import { Block } from '@/components/common/Block';
-import { SurveyDistribution } from './surveyDistribution'; // Импортируем новый компонент
+import { SurveyDistribution } from './surveyDistribution';
 import Spinner from '@/components/common/Spinner';
-
-
-const SURVEY_STATE = {'DRAFT': 'Черновик', 'ACTIVE': 'Активный'}
+import { useTranslation } from 'next-i18next';
+import { FaArrowRight } from 'react-icons/fa';
+import Link from 'next/link';
 
 export default function SurveyPageClient() {
+  // Use the 'survey' prefix for translations
+  const { t, i18n } = useTranslation('translation', { keyPrefix: 'survey' });
   const params = useParams();
   const hash = params.hash as string;
   const { data, isLoading, error } = useGetSurvey();
+
   if (error) {
-    throw Error
+    throw new Error('Failed to load survey');
   }
+
   const createQ = useCreateQuestion();
   const updateSurvey = useUpdateSurvey();
   const restoreSurvey = useRestoreSurvey();
@@ -38,7 +42,7 @@ export default function SurveyPageClient() {
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
 
   if (isLoading) {
-   return <Spinner />;
+    return <Spinner />;
   }
 
   const handleTitleChange = (newTitle: string) => {
@@ -54,27 +58,41 @@ export default function SurveyPageClient() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen relative">
+      {/* "Go to Statistics" link in the top-left corner */}
+      <div className="absolute top-4 left-4 z-10">
+        <Link
+          href={`/survey/${hash}/stats`}
+          className="flex items-center text-blue-600 hover:text-blue-800"
+        >
+          <FaArrowRight className="mr-2" />
+          {t('goToStats')}
+        </Link>
+      </div>
+
       <div className="flex-1 flex justify-center p-6">
         <div className="max-w-3xl w-full">
           <Block>
             <div className="grid grid-cols-2 gap-4">
-              <div className="font-medium">Название опроса</div>
+              <div className="font-medium">{t('surveyTitle')}</div>
               <div>
-                <EditableLabel initialLabel={survey?.title} onLabelChange={handleTitleChange} />
+                <EditableLabel
+                  initialLabel={survey?.title}
+                  onLabelChange={handleTitleChange}
+                />
               </div>
-              <div className="font-medium">Автор</div>
-              <div>{survey.creator || 'Unknown'}</div>
-              <div className="font-medium">Дата создания</div>
+              <div className="font-medium">{t('creator')}</div>
+              <div>{survey.creator || t('unknown')}</div>
+              <div className="font-medium">{t('createdAt')}</div>
               <div>
                 {survey.created_at
-                  ? new Date(survey.created_at).toLocaleString('ru-RU', {
+                  ? new Date(survey.created_at).toLocaleString(i18n.language, {
                       timeZone: 'UTC',
                     })
-                  : 'Unknown'}
+                  : t('unknown')}
               </div>
-              <div className="font-medium">Состояние</div>
-              <div>{SURVEY_STATE[survey.state]}</div>
+              <div className="font-medium">{t('state')}</div>
+              <div>{t(`states.${survey.state}`)}</div>
             </div>
             <SurveyActions
               state={survey.state}
@@ -90,14 +108,16 @@ export default function SurveyPageClient() {
           <SurveyDistribution hash={hash} />
 
           <ul className="space-y-4">
-           {[...questions].sort((a, b) => (a.question_order || 0) - (b.question_order || 0)).map((q) => (
-  <QuestionBlock key={q.id} question={q} />
-))}
+            {[...questions]
+              .sort((a, b) => (a.question_order || 0) - (b.question_order || 0))
+              .map((q) => (
+                <QuestionBlock key={q.id} question={q} />
+              ))}
           </ul>
         </div>
       </div>
 
-      {/* Модальные окна */}
+      {/* Modals */}
       <AccessModal
         isOpen={isAccessModalOpen}
         onClose={() => setIsAccessModalOpen(false)}

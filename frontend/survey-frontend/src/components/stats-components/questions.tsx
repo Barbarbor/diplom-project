@@ -7,15 +7,16 @@ import { Block } from '../common/Block';
 // Function to filter valid answers based on question type
 function filterValidAnswers(question: QuestionStats): string[] {
   const { type, answers, options } = question;
-
+  const nonNullableAnswers = answers === null? []: answers;
+  console.log('answers', nonNullableAnswers)
   switch (type) {
     case 'single_choice':
       const validOptionIds = options?.map(opt => opt.id.toString()) || [];
-      return answers.filter(ans => validOptionIds.includes(ans));
+      return nonNullableAnswers.filter(ans => validOptionIds.includes(ans));
 
     case 'multi_choice':
       const validOptionIdsSet = new Set(options?.map(opt => opt.id) || []);
-      return answers
+      return nonNullableAnswers
         .map(ans => {
           try {
             const parsedAns = JSON.parse(ans) as string[];
@@ -28,30 +29,30 @@ function filterValidAnswers(question: QuestionStats): string[] {
         .filter(ans => ans !== null) as string[];
 
   case 'rating':
-      return answers.filter(ans => {
+      return nonNullableAnswers.filter(ans => {
         const num = Number(ans);
         return !isNaN(num) && num >= 1 && num <= (question?.extra_params?.starsCount || 5); // Валидация до starsCount
       });
 
     case 'number':
-      return answers.filter(ans => !isNaN(Number(ans)));
+      return nonNullableAnswers.filter(ans => !isNaN(Number(ans)));
 
     case 'date':
-      return answers.filter(ans => !isNaN(new Date(ans).getTime()));
+      return nonNullableAnswers.filter(ans => !isNaN(new Date(ans).getTime()));
 
     case 'email':
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return answers.filter(ans => emailRegex.test(ans));
+      return nonNullableAnswers.filter(ans => emailRegex.test(ans));
 
     case 'consent':
-      return answers.filter(ans => ans === 'true' || ans === 'false');
+      return nonNullableAnswers.filter(ans => ans === 'true' || ans === 'false');
 
     case 'short_text':
     case 'long_text':
-      return answers; // All text answers are valid
+      return nonNullableAnswers; // All text nonNullableAnswers are valid
 
     default:
-      return answers;
+      return nonNullableAnswers;
   }
 }
 export const SingleChoiceStats = ({ question }: { question: QuestionStats }) => {
