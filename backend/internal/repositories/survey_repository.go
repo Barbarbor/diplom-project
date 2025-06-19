@@ -556,3 +556,139 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 
 	return &stats, nil
 }
+
+// GetAccessEmails retrieves emails of users with 'edit' access for a survey
+func (r *surveyRepository) GetAccessEmails(surveyID int) ([]string, error) {
+	var emails []string
+	query := `
+		SELECT DISTINCT u.email
+		FROM survey_roles sr
+		JOIN users u ON sr.user_id = u.id
+		WHERE sr.survey_id = $1 AND $2 = ANY(sr.roles)
+	`
+	err := r.db.Select(&emails, query, surveyID, domain.Edit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get access emails: %w", err)
+	}
+	return emails, nil
+}
+
+// AddEditAccess adds 'edit' access to a user for the survey
+func (r *surveyRepository) AddEditAccess(surveyID int, email string) error {
+	user, err := r.GetUserByEmail(email)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return fmt.Errorf("user with email %s not found", email)
+	}
+
+	var existingRoles []domain.SurveyRole
+	err = r.db.Get(&existingRoles, `
+		SELECT roles FROM survey_roles WHERE survey_id = $1 AND user_id = $2
+	`, surveyID, user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("failed to get existing roles: %w", err)
+	}
+
+	var roles []domain.SurveyRole
+	if err == sql.ErrNoRows {
+		roles = []domain.SurveyRole{domain.Edit}
+	} else {
+		roles = existingRoles
+		hasEdit := false
+		for _, r := range roles {
+			if r == domain.Edit {
+				hasEdit = true
+				break
+			}
+		}
+		if !hasEdit {
+			roles = append(roles, domain.Edit)
+		}
+	}
+
+	query := `
+		INSERT INTO survey_roles (survey_id, user_id, roles)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (survey_id, user_id) DO UPDATE
+		SET roles = $3
+	`
+	_, err = r.db.Exec(query, surveyID, user.ID, pq.Array(roles))
+	if err != nil {
+		// Check if the error is due to a missing constraint (though this should be resolved by the migration)
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" { // Unique violation
+			return fmt.Errorf("duplicate entry for survey %d and user %d: %w", surveyID, user.ID, err)
+		}
+		return fmt.Errorf("failed to update survey roles: %w", err)
+	}
+	return nil
+}
+
+// RemoveEditAccess removes 'edit' access from a user for the survey
+func (r *surveyRepository) RemoveEditAccess(surveyID int, email string, currentUserID int, surveyAuthorEmail string) error {
+	user, err := r.GetUserByEmail(email)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return fmt.Errorf("user with email %s not found", email)
+	}
+
+	if user.ID == currentUserID {
+		return fmt.Errorf("cannot remove self from survey access")
+	}
+
+	creatorUser, err := r.GetUserByEmail(surveyAuthorEmail)
+	if err != nil {
+		return err
+	}
+	if creatorUser != nil && creatorUser.ID == user.ID {
+		return fmt.Errorf("cannot remove survey creator from access")
+	}
+
+	var roles domain.SurveyRoles
+	err = r.db.Get(&roles, `
+        SELECT id, survey_id, user_id, roles FROM survey_roles WHERE survey_id = $1 AND user_id = $2
+    `, surveyID, user.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil // No roles to remove
+		}
+		return fmt.Errorf("failed to get user roles: %w", err)
+	}
+
+	// Since roles.Roles is now pq.StringArray (i.e., []string), filter out "edit"
+	var newRoles []string
+	for _, r := range roles.Roles {
+		if r != string(domain.Edit) {
+			newRoles = append(newRoles, r)
+		}
+	}
+
+	if len(newRoles) == 0 {
+		_, err = r.db.Exec(`DELETE FROM survey_roles WHERE id = $1`, roles.ID)
+	} else {
+		_, err = r.db.Exec(`
+            UPDATE survey_roles SET roles = $1 WHERE id = $2
+        `, pq.Array(newRoles), roles.ID)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to remove edit access: %w", err)
+	}
+	return nil
+}
+
+// GetUserByEmail retrieves a user by email
+func (r *surveyRepository) GetUserByEmail(email string) (*domain.User, error) {
+	var user domain.User
+	query := `SELECT id, email FROM users WHERE email = $1`
+	err := r.db.Get(&user, query, email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
+	}
+	return &user, nil
+}

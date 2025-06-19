@@ -49,6 +49,9 @@ func RegisterRoutes(
 				surveyProtected.PATCH("", surveyHandler.UpdateSurvey)
 				surveyProtected.POST("/publish", surveyHandler.PublishSurvey)
 				surveyProtected.PUT("/restore", surveyHandler.RestoreSurvey)
+				surveyProtected.GET("/access", surveyHandler.GetSurveyAccessHandler)
+				surveyProtected.POST("/access", surveyHandler.AddSurveyAccessHandler)
+				surveyProtected.DELETE("/access", surveyHandler.RemoveSurveyAccessHandler)
 				questionRoutes := surveyProtected.Group("/question")
 				{
 					questionRoutes.POST("", questionHandler.CreateQuestion)

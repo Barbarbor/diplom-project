@@ -159,7 +159,21 @@ export const resources = {
             minDate: "Minimum Date",
             maxDate: "Maximum Date",
           },
+          
         },
+         access: {
+          title: "Manage Survey Access",
+          close: "Close",
+          loading: "Loading...",
+          emailPlaceholder: "Enter email",
+          add: "Add",
+          remove: "Remove",
+          error: {
+            fetch: "Error fetching access list: {{message}}",
+            add: "Error adding access: {{message}}",
+            remove: "Error removing access: {{message}}",
+          },
+        }
       },
     },
   },
@@ -322,6 +336,19 @@ export const resources = {
             starsCount: "Количество звёзд",
             minDate: "Минимальная дата",
             maxDate: "Максимальная дата",
+          },
+        },
+        access: {
+          title: "Управление доступом к опросу",
+          close: "Закрыть",
+          loading: "Загрузка...",
+          emailPlaceholder: "Введите email",
+          add: "Добавить",
+          remove: "Удалить",
+          error: {
+            fetch: "Ошибка загрузки списка доступа: {{message}}",
+            add: "Ошибка добавления доступа: {{message}}",
+            remove: "Ошибка удаления доступа: {{message}}",
           },
         },
       },

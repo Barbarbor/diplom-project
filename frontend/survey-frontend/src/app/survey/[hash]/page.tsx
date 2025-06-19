@@ -121,6 +121,7 @@ export default function SurveyPageClient() {
       <AccessModal
         isOpen={isAccessModalOpen}
         onClose={() => setIsAccessModalOpen(false)}
+        hash={hash}
       />
       <PreviewModal
         isOpen={isPreviewOpen}
@@ -129,4 +130,4 @@ export default function SurveyPageClient() {
       />
     </div>
   );
-}
+} 

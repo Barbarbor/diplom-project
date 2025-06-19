@@ -157,3 +157,63 @@ func (h *SurveyHandler) GetSurveyStats(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, stats)
 }
+
+// GetSurveyAccessHandler handles GET /access
+func (h *SurveyHandler) GetSurveyAccessHandler(c *gin.Context) {
+	surveyData, _ := c.Get("survey")
+	survey := surveyData.(*domain.Survey)
+	emails, err := h.surveyService.GetAccessList(survey.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, emails)
+}
+
+// AddSurveyAccessHandler handles POST /access?email=<userEmailToAdd>
+func (h *SurveyHandler) AddSurveyAccessHandler(c *gin.Context) {
+	surveyData, _ := c.Get("survey")
+	survey := surveyData.(*domain.Survey)
+	email := c.Query("email")
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is required"})
+		return
+	}
+
+	err := h.surveyService.AddEditAccess(survey.ID, email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// RemoveSurveyAccessHandler handles DELETE /access?email=<userEmailToDelete>
+func (h *SurveyHandler) RemoveSurveyAccessHandler(c *gin.Context) {
+	surveyData, _ := c.Get("survey")
+	survey := surveyData.(*domain.Survey)
+	email := c.Query("email")
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is required"})
+		return
+	}
+
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID, _ := userIDInterface.(int)
+	creator, exists := c.Get("surveyAuthor")
+	creatorParsed := creator.(string)
+	if !exists {
+		creator = "unknown"
+	}
+
+	err := h.surveyService.RemoveEditAccess(survey.ID, email, userID, creatorParsed)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}

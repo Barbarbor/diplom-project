@@ -558,3 +558,17 @@ func (s *SurveyService) GetSurveyStats(surveyID int) (*domain.SurveyStats, error
 
 	return stats, nil
 }
+
+func (s *SurveyService) AddEditAccess(surveyID int, email string) error {
+	return s.surveyRepo.AddEditAccess(surveyID, email)
+}
+
+// RemoveEditAccess removes 'edit' access from a user for the survey
+func (s *SurveyService) RemoveEditAccess(surveyID int, email string, currentUserID int, surveyAuthorEmail string) error {
+	return s.surveyRepo.RemoveEditAccess(surveyID, email, currentUserID, surveyAuthorEmail)
+}
+
+// GetAccessList retrieves the list of users with 'edit' access to the survey
+func (s *SurveyService) GetAccessList(surveyID int) ([]string, error) {
+	return s.surveyRepo.GetAccessEmails(surveyID)
+}

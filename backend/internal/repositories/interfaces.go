@@ -36,6 +36,11 @@ type SurveyRepository interface {
 	FinishInterview(interviewID string, endTime time.Time, isDemo bool) error
 
 	GetSurveyStats(surveyID int) (*domain.SurveyStats, error)
+
+	GetAccessEmails(surveyID int) ([]string, error)
+	AddEditAccess(surveyID int, email string) error
+	RemoveEditAccess(surveyID int, email string, currentUserID int, surveyAuthorEmail string) error
+	GetUserByEmail(email string) (*domain.User, error)
 }
 
 // QuestionRepository определяет методы для работы с вопросами в БД
