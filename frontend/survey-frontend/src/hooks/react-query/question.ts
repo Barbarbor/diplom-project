@@ -182,7 +182,7 @@ export const useUpdateQuestionLabel = () => {
 };
 export const useUpdateQuestionType = () => {
   const queryClient = useQueryClient();
-  const updateStateBadge = useUpdateStateBadge();
+
   return useMutation<
     SurveyQuestion, // Возвращаем обновленный вопрос
     Error,
@@ -217,7 +217,6 @@ export const useUpdateQuestionType = () => {
           };
         }
       );
-      updateStateBadge.mutate({ hash, questionId, newState: "CHANGED" });
       queryClient.invalidateQueries({ queryKey: SURVEY_QUERY_KEY(hash) })
     },
     // onError: (err, { hash }, context) => {

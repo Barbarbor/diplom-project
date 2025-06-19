@@ -22,7 +22,10 @@ const SURVEY_STATE = {'DRAFT': 'Черновик', 'ACTIVE': 'Активный'}
 export default function SurveyPageClient() {
   const params = useParams();
   const hash = params.hash as string;
-  const { data, isLoading } = useGetSurvey();
+  const { data, isLoading, error } = useGetSurvey();
+  if (error) {
+    throw Error
+  }
   const createQ = useCreateQuestion();
   const updateSurvey = useUpdateSurvey();
   const restoreSurvey = useRestoreSurvey();

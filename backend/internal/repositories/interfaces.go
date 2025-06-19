@@ -24,7 +24,7 @@ type ProfileRepository interface {
 type SurveyRepository interface {
 	CreateSurvey(title string, authorID int, hash string, state domain.SurveyState, now time.Time) (int, error)
 	GetSurveyByHash(hash string) (*domain.Survey, string, error)
-	GetSurveyIdByHash(hash string) (int, error)
+	GetSurveyIdByHash(hash string, isDemo bool) (int, error)
 	CheckUserAccess(userID int, surveyID int) (bool, error)           // Добавляем этот метод
 	GetSurveysByAuthor(authorID int) ([]*domain.SurveySummary, error) // Новый метод
 	PublishSurvey(surveyID int) error

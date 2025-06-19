@@ -98,15 +98,23 @@ func (r *surveyRepository) GetSurveyByHash(hash string) (*domain.Survey, string,
 	return &survey, email, nil
 }
 
-func (r *surveyRepository) GetSurveyIdByHash(hash string) (int, error) {
+func (r *surveyRepository) GetSurveyIdByHash(hash string, isDemo bool) (int, error) {
 	var surveyID int
-	query := `
-		SELECT s.id
-		FROM surveys s
-		WHERE s.hash = $1`
-	if err := r.db.QueryRow(query, hash).Scan(
-		&surveyID,
-	); err != nil {
+	var query string
+
+	if isDemo {
+		query = `
+			SELECT s.id
+			FROM surveys s
+			WHERE s.hash = $1`
+	} else {
+		query = `
+			SELECT s.id
+			FROM surveys s
+			WHERE s.hash = $1 AND s.state = 'ACTIVE'`
+	}
+
+	if err := r.db.QueryRow(query, hash).Scan(&surveyID); err != nil {
 		fmt.Print("surveyid", surveyID)
 		return -1, err
 	}
@@ -132,10 +140,11 @@ func (r *surveyRepository) CheckUserAccess(userID int, surveyID int) (bool, erro
 func (r *surveyRepository) GetSurveysByAuthor(authorID int) ([]*domain.SurveySummary, error) {
 	var summaries []*domain.SurveySummary
 	query := `
-        SELECT s.title, s.created_at, s.updated_at, s.hash, s.state, ss.completed_interviews
+        SELECT st.title, s.created_at, s.updated_at, s.hash, s.state, ss.completed_interviews
         FROM surveys s
         JOIN survey_roles sr ON s.id = sr.survey_id
         JOIN survey_stats ss ON s.id = ss.survey_id
+        JOIN surveys_temp st ON s.id = st.survey_original_id -- Assuming hash links surveys and surveys_temp
         WHERE sr.user_id = $1
         AND 'read' = ANY(sr.roles)
         ORDER BY s.created_at DESC`
@@ -144,7 +153,6 @@ func (r *surveyRepository) GetSurveysByAuthor(authorID int) ([]*domain.SurveySum
 	}
 	return summaries, nil
 }
-
 func (r *surveyRepository) UpdateSurveyTitle(surveyID int, newTitle string) error {
 	tx, err := r.db.Beginx()
 	if err != nil {
@@ -425,8 +433,15 @@ func (r *surveyRepository) FinishInterview(interviewID string, endTime time.Time
 	return nil
 }
 func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, error) {
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Шаг 1: Получаем общую статистику
 	var stats domain.SurveyStats
-	err := r.db.Get(&stats, `
+	err = tx.Get(&stats, `
 		SELECT started_interviews, completed_interviews
 		FROM survey_stats
 		WHERE survey_id = $1
@@ -435,10 +450,15 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 		return nil, fmt.Errorf("failed to get survey stats: %w", err)
 	}
 
-	// Шаг 2: Получаем список вопросов
-	var questions []domain.QuestionStats
-	err = r.db.Select(&questions, `
-		SELECT id, label, type
+	// Шаг 2: Получаем список вопросов с raw extra_params
+	var tempQuestions []struct {
+		ID          int                 `db:"id"`
+		Label       string              `db:"label"`
+		Type        domain.QuestionType `db:"type"`
+		ExtraParams json.RawMessage     `db:"extra_params"` // Use json.RawMessage for raw DB data
+	}
+	err = tx.Select(&tempQuestions, `
+		SELECT id, label, type, extra_params
 		FROM survey_questions
 		WHERE survey_id = $1
 		ORDER BY question_order
@@ -447,11 +467,27 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 		return nil, fmt.Errorf("failed to get survey questions: %w", err)
 	}
 
-	// Шаг 3: Получаем опции для вопросов с опциями
-	for i, question := range questions {
+	// Шаг 3: Парсим extra_params и собираем финальный список вопросов
+	var questions []domain.QuestionStats
+	for _, tempQ := range tempQuestions {
+		extraParams, err := domain.ParseExtraParams(tempQ.ExtraParams, tempQ.Type)
+		if err != nil {
+			// Handle parsing error (e.g., log it or use a default value)
+			extraParams = domain.ConsentExtraParams{} // Default fallback
+		}
+
+		// Создаём новый QuestionStats
+		question := domain.QuestionStats{
+			ID:          tempQ.ID,
+			Label:       tempQ.Label,
+			Type:        tempQ.Type,
+			ExtraParams: extraParams,
+		}
+
+		// Получаем опции для вопросов с опциями
 		if question.Type == "single_choice" || question.Type == "multi_choice" {
 			var options []domain.OptionStats
-			err = r.db.Select(&options, `
+			err = tx.Select(&options, `
 				SELECT id, label
 				FROM survey_options
 				WHERE question_id = $1
@@ -460,14 +496,12 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 			if err != nil {
 				return nil, fmt.Errorf("failed to get options for question %d: %w", question.ID, err)
 			}
-			questions[i].Options = options
+			question.Options = options
 		}
-	}
 
-	// Шаг 4: Получаем ответы на вопросы только из завершённых интервью
-	for i, question := range questions {
+		// Получаем ответы на вопросы только из завершённых интервью
 		var answers []string
-		err = r.db.Select(&answers, `
+		err = tx.Select(&answers, `
 			SELECT sa.answer
 			FROM survey_answers sa
 			JOIN survey_interviews si ON sa.interview_id = si.id
@@ -477,15 +511,19 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 		if err != nil {
 			return nil, fmt.Errorf("failed to get answers for question %d: %w", question.ID, err)
 		}
-		questions[i].Answers = answers
+		question.Answers = answers
+
+		questions = append(questions, question)
 	}
+
+	// Шаг 4: Получаем времена интервью
 	var interviewTimes []domain.InterviewTime
-	err = r.db.Select(&interviewTimes, `
-        SELECT start_time, end_time
-        FROM survey_interviews
-        WHERE survey_id = $1
-        AND status = 'completed'
-    `, surveyID)
+	err = tx.Select(&interviewTimes, `
+		SELECT start_time, end_time
+		FROM survey_interviews
+		WHERE survey_id = $1
+		AND status = 'completed'
+	`, surveyID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get interview times for survey %d: %w", surveyID, err)
 	}
@@ -493,5 +531,16 @@ func (r *surveyRepository) GetSurveyStats(surveyID int) (*domain.SurveyStats, er
 	// Собираем результат
 	stats.Questions = questions
 	stats.InterviewTimes = interviewTimes
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
 	return &stats, nil
+}
+
+// Assuming InterviewTime is defined in domain package
+type InterviewTime struct {
+	StartTime time.Time `db:"start_time"`
+	EndTime   time.Time `db:"end_time"`
 }

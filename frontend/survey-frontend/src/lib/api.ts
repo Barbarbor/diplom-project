@@ -44,8 +44,7 @@ const request = async <T = unknown>({
   };
 try {
     const response = await fetch(fullUrl, fetchOptions);
-      console.log('resp', response)
-      console.log('body', response.body)
+    
     if (!response.ok) {
       const responseBody = await response.json();
       return { error: responseBody.error, status: response.status, success: false };
@@ -70,7 +69,7 @@ try {
       success: true,
     };
   } catch (error) {
-    console.error('Request error:', error);
+  
     return {
       error: error instanceof Error ? error.message : 'Unknown error',
       status: 0,

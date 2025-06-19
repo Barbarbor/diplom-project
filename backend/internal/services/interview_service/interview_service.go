@@ -3,7 +3,6 @@ package interview
 import (
 	"backend/internal/domain"
 	"backend/internal/repositories"
-	"fmt"
 	"time"
 )
 
@@ -18,8 +17,8 @@ func NewInterviewService(repo repositories.InterviewRepository, surveyRepo repos
 
 func (s *InterviewService) StartInterview(hash, interviewID string, isDemo bool) error {
 	// Check if the survey exists by hash
-	surveyID, err := s.surveyRepo.GetSurveyIdByHash(hash)
-	fmt.Print("surveyid", surveyID)
+	surveyID, err := s.surveyRepo.GetSurveyIdByHash(hash, isDemo)
+
 	if err != nil {
 		return domain.ErrSurveyNotFound
 	}

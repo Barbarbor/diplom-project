@@ -8,6 +8,7 @@ import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import WithPathname from "@/components/common/WithPathname";
 import CookieBanner from "@/components/banners/CookieBanner";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -24,7 +25,8 @@ export default async function RootLayout({
 
   return (
     <html lang="ru">
-      <body className="flex flex-col min-h-screen">
+    <body className="flex flex-col min-h-screen">
+       <ErrorBoundary>
         <QueryProvider>
           <I18nWrapper>
             <WithPathname restrictedPaths={['/landing', '/poll', '/privacy','/terms', '/contacts']}>
@@ -39,7 +41,9 @@ export default async function RootLayout({
             </WithPathname>
           </I18nWrapper>
         </QueryProvider>
+        </ErrorBoundary>
       </body>
+
     </html>
   );
 }

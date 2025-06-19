@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { QuestionType } from "./question";
 
 interface OptionStats {
@@ -11,6 +12,7 @@ export interface QuestionStats {
   type: QuestionType;
   options?: OptionStats[];
   answers: string[];
+  extra_params?: Record<string, any>;
 }
 
 export interface SurveyStats {

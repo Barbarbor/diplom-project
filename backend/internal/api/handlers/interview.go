@@ -51,9 +51,8 @@ func (h *InterviewHandler) StartInterview(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Interview started successfully"})
 }
 
-// GetSurveyWithAnswers обрабатывает запрос на получение вопросов с опциями и ответами
 func (h *InterviewHandler) GetSurveyWithAnswers(c *gin.Context) {
-	// Получаем interview из контекста (предполагается, что middleware его установил)
+	// Получаем interview из контекста
 	interview, exists := c.Get("interview")
 	if !exists {
 		c.JSON(500, gin.H{"error": "Interview not found in context"})
@@ -64,6 +63,12 @@ func (h *InterviewHandler) GetSurveyWithAnswers(c *gin.Context) {
 	surveyInterview, ok := interview.(*domain.SurveyInterview)
 	if !ok {
 		c.JSON(500, gin.H{"error": "Invalid interview type in context"})
+		return
+	}
+
+	// Проверка статуса интервью
+	if surveyInterview.Status == "completed" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Вы уже завершили опрос"})
 		return
 	}
 
@@ -83,9 +88,8 @@ func (h *InterviewHandler) GetSurveyWithAnswers(c *gin.Context) {
 	c.JSON(200, gin.H{"questions": questions})
 }
 
-// UpdateQuestionAnswer обрабатывает PATCH-запрос для обновления ответа
 func (h *InterviewHandler) UpdateQuestionAnswer(c *gin.Context) {
-	// Извлекаем интервью из контекста (предполагается, что оно установлено middleware)
+	// Извлекаем интервью из контекста
 	interview, exists := c.Get("interview")
 	if !exists {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Interview not found in context"})
@@ -94,6 +98,12 @@ func (h *InterviewHandler) UpdateQuestionAnswer(c *gin.Context) {
 	surveyInterview, ok := interview.(*domain.SurveyInterview)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid interview type"})
+		return
+	}
+
+	// Проверка статуса интервью
+	if surveyInterview.Status == "completed" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Вы уже завершили опрос"})
 		return
 	}
 
@@ -130,9 +140,8 @@ func (h *InterviewHandler) UpdateQuestionAnswer(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Answer updated successfully"})
 }
 
-// FinishInterview обрабатывает запрос POST /interview/:hash/finish
 func (h *InterviewHandler) FinishInterview(c *gin.Context) {
-	// Извлекаем интервью из контекста (предполагается, что оно было добавлено middleware)
+	// Извлекаем интервью из контекста
 	interview, exists := c.Get("interview")
 	if !exists {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "interview not found in context"})
@@ -141,6 +150,12 @@ func (h *InterviewHandler) FinishInterview(c *gin.Context) {
 	surveyInterview, ok := interview.(*domain.SurveyInterview)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid interview type"})
+		return
+	}
+
+	// Проверка статуса интервью
+	if surveyInterview.Status == "completed" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Вы уже завершили опрос"})
 		return
 	}
 

@@ -23,7 +23,6 @@ export default function SurveyStatsPage() {
   const hash = params.hash as string;
 
   const { data, isLoading, error } = useGetSurveyStats(hash);
-  console.log('data', data);
 
   if (isLoading) return <Spinner />;
   if (error) return <div>Ошибка: {error.message}</div>;

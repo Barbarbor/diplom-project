@@ -3,13 +3,64 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'r
 import { Box, Typography, LinearProgress, Button, List, ListItem } from '@mui/material';
 import { QuestionStats } from '@/types/stats';
 import { Block } from '../common/Block';
+
+// Function to filter valid answers based on question type
+function filterValidAnswers(question: QuestionStats): string[] {
+  const { type, answers, options } = question;
+
+  switch (type) {
+    case 'single_choice':
+      const validOptionIds = options?.map(opt => opt.id.toString()) || [];
+      return answers.filter(ans => validOptionIds.includes(ans));
+
+    case 'multi_choice':
+      const validOptionIdsSet = new Set(options?.map(opt => opt.id) || []);
+      return answers
+        .map(ans => {
+          try {
+            const parsedAns = JSON.parse(ans) as string[];
+            const filteredAns = parsedAns.filter(id => validOptionIdsSet.has(id));
+            return filteredAns.length > 0 ? JSON.stringify(filteredAns) : null;
+          } catch {
+            return null;
+          }
+        })
+        .filter(ans => ans !== null) as string[];
+
+  case 'rating':
+      return answers.filter(ans => {
+        const num = Number(ans);
+        return !isNaN(num) && num >= 1 && num <= (question?.extra_params?.starsCount || 5); // Валидация до starsCount
+      });
+
+    case 'number':
+      return answers.filter(ans => !isNaN(Number(ans)));
+
+    case 'date':
+      return answers.filter(ans => !isNaN(new Date(ans).getTime()));
+
+    case 'email':
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return answers.filter(ans => emailRegex.test(ans));
+
+    case 'consent':
+      return answers.filter(ans => ans === 'true' || ans === 'false');
+
+    case 'short_text':
+    case 'long_text':
+      return answers; // All text answers are valid
+
+    default:
+      return answers;
+  }
+}
 export const SingleChoiceStats = ({ question }: { question: QuestionStats }) => {
-  const totalAnswers = question.answers.length;
-  const answerCounts = question.answers.reduce((acc, ans) => {
-    const numAns = Number(ans);
-    acc[numAns] = (acc[numAns] || 0) + 1;
+  const validAnswers = filterValidAnswers(question);
+  const totalAnswers = validAnswers.length;
+  const answerCounts = validAnswers.reduce((acc, ans) => {
+    acc[ans] = (acc[ans] || 0) + 1;
     return acc;
-  }, {} as Record<number, number>);
+  }, {} as Record<string, number>);
 
   return (
     <Block>
@@ -17,7 +68,7 @@ export const SingleChoiceStats = ({ question }: { question: QuestionStats }) => 
         {question.label}
       </Typography>
       {question?.options?.map((option) => {
-        const count = answerCounts[option.id] || 0;
+        const count = answerCounts[option.id.toString()] || 0;
         const percentage = totalAnswers > 0 ? (count / totalAnswers) * 100 : 0;
         return (
           <Box key={option.id} display="flex" alignItems="center" mb={2}>
@@ -47,15 +98,20 @@ export const SingleChoiceStats = ({ question }: { question: QuestionStats }) => 
       })}
     </Block>
   );
-};export const MultiChoiceStats = ({ question }: { question: QuestionStats }) => {
-  const totalInterviews = question.answers.length;
-  const answerCounts = question.answers.reduce((acc, ans) => {
-    const parsedAns = JSON.parse(ans) as number[];
-    parsedAns.forEach((id) => {
-      acc[id] = (acc[id] || 0) + 1;
-    });
+};
+
+export const MultiChoiceStats = ({ question }: { question: QuestionStats }) => {
+  const validAnswers = filterValidAnswers(question);
+  const totalInterviews = validAnswers.length;
+  const answerCounts = validAnswers.reduce((acc, ans) => {
+    try {
+      const parsedAns = JSON.parse(ans) as string[];
+      parsedAns.forEach((id) => {
+        acc[id] = (acc[id] || 0) + 1;
+      });
+    } catch {}
     return acc;
-  }, {} as Record<number, number>);
+  }, {} as Record<string, number>);
 
   return (
     <Block>
@@ -63,7 +119,7 @@ export const SingleChoiceStats = ({ question }: { question: QuestionStats }) => 
         {question.label}
       </Typography>
       {question?.options?.map((option) => {
-        const count = answerCounts[option.id] || 0;
+        const count = answerCounts[option.id.toString()] || 0;
         const percentage = totalInterviews > 0 ? (count / totalInterviews) * 100 : 0;
         return (
           <Box key={option.id} display="flex" alignItems="center" mb={2}>
@@ -93,9 +149,12 @@ export const SingleChoiceStats = ({ question }: { question: QuestionStats }) => 
       })}
     </Block>
   );
-};export const ConsentStats = ({ question }: { question: QuestionStats }) => {
-  const totalAnswers = question.answers.length;
-  const trueCount = question.answers.filter((ans) => ans === 'true').length;
+};
+
+export const ConsentStats = ({ question }: { question: QuestionStats }) => {
+  const validAnswers = filterValidAnswers(question);
+  const totalAnswers = validAnswers.length;
+  const trueCount = validAnswers.filter((ans) => ans === 'true').length;
   const falseCount = totalAnswers - trueCount;
   const truePercentage = totalAnswers > 0 ? (trueCount / totalAnswers) * 100 : 0;
   const falsePercentage = totalAnswers > 0 ? (falseCount / totalAnswers) * 100 : 0;
@@ -154,10 +213,12 @@ export const SingleChoiceStats = ({ question }: { question: QuestionStats }) => 
     </Block>
   );
 };
+
 export const TextStats = ({ question }: { question: QuestionStats }) => {
   const [showAll, setShowAll] = useState(false);
+  const validAnswers = filterValidAnswers(question);
 
-  const answerCounts = question.answers.reduce((acc, ans) => {
+  const answerCounts = validAnswers.reduce((acc, ans) => {
     acc[ans] = (acc[ans] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -199,8 +260,11 @@ export const TextStats = ({ question }: { question: QuestionStats }) => {
       )}
     </Block>
   );
-};export const DateStats = ({ question }: { question: QuestionStats }) => {
-  const dates = question.answers.map((ans) => new Date(ans)).filter((date) => !isNaN(date.getTime()));
+};
+
+export const DateStats = ({ question }: { question: QuestionStats }) => {
+  const validAnswers = filterValidAnswers(question);
+  const dates = validAnswers.map((ans) => new Date(ans)).filter((date) => !isNaN(date.getTime()));
   const frequencyMap = dates.reduce((acc, date) => {
     const dateStr = date.toISOString().split('T')[0];
     acc[dateStr] = (acc[dateStr] || 0) + 1;
@@ -249,8 +313,10 @@ export const TextStats = ({ question }: { question: QuestionStats }) => {
     </Block>
   );
 };
+
 export const NumberStats = ({ question }: { question: QuestionStats }) => {
-  const numbers = question.answers.map(Number).filter((num) => !isNaN(num) && num !== 0);
+  const validAnswers = filterValidAnswers(question);
+  const numbers = validAnswers.map(Number).filter((num) => !isNaN(num));
   const frequencyMap = numbers.reduce((acc, num) => {
     acc[num] = (acc[num] || 0) + 1;
     return acc;
@@ -299,19 +365,20 @@ export const NumberStats = ({ question }: { question: QuestionStats }) => {
     </Block>
   );
 };
+
 export const RatingStats = ({ question }: { question: QuestionStats }) => {
-  const totalAnswers = question.answers.length;
-  const sum = question.answers.reduce((acc, ans) => acc + Number(ans), 0);
+  const validAnswers = filterValidAnswers(question);
+  const totalAnswers = validAnswers.length;
+  const sum = validAnswers.reduce((acc, ans) => acc + Number(ans), 0);
   const average = totalAnswers > 0 ? (sum / totalAnswers).toFixed(1) : '0.0';
 
-  const frequency = question.answers.reduce((acc, ans) => {
+  const frequency = validAnswers.reduce((acc, ans) => {
     const numAns = Number(ans);
     acc[numAns] = (acc[numAns] || 0) + 1;
     return acc;
   }, {} as Record<number, number>);
 
-  const maxRating = 5;
-
+  const maxRating = question?.extra_params?.starsCount || 5; // Динамический максимум
   const data = Array.from({ length: maxRating }, (_, i) => i + 1).map((star) => ({
     rating: star,
     count: frequency[star] || 0,
@@ -357,10 +424,11 @@ export const RatingStats = ({ question }: { question: QuestionStats }) => {
     </Block>
   );
 };
+
 export const EmailStats = ({ question }: { question: QuestionStats }) => {
   const [showAll, setShowAll] = useState(false);
-
-  const uniqueEmails = [...new Set(question.answers)].sort();
+  const validAnswers = filterValidAnswers(question);
+  const uniqueEmails = [...new Set(validAnswers)].sort();
   const top5 = uniqueEmails.slice(0, 5);
   const remaining = uniqueEmails.slice(5);
 

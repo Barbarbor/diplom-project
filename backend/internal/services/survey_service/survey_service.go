@@ -330,10 +330,11 @@ func (s *SurveyService) UpdateQuestionAnswer(interviewID string, questionID int,
 }
 
 // ValidateAnswer валидирует ответ на основе типа вопроса и экстра параметров
-func (s *SurveyService) ValidateAnswer(question interface{}, answer *string) error {
+func (s *SurveyService) ValidateAnswer(question interface{}, answer *string, interviewID string, isDemo bool) error {
 	var qType domain.QuestionType
 	var extraParams domain.ExtraParams
 
+	que := question.(*domain.SurveyQuestion)
 	// Определяем тип вопроса и извлекаем экстра параметры
 	if q, ok := question.(*domain.SurveyQuestion); ok {
 		qType = q.Type
@@ -403,9 +404,12 @@ func (s *SurveyService) ValidateAnswer(question interface{}, answer *string) err
 		}
 	case domain.Consent:
 		if answer == nil {
+
 			// Создаём новый указатель с значением "false", если ответ отсутствует
 			defaultAnswer := "false"
 			answer = &defaultAnswer
+
+			s.questionRepo.CreateAnswer(interviewID, que.ID, *answer)
 		} else if *answer != "true" && *answer != "false" {
 			return errors.New("invalid consent: expected 'true' or 'false'")
 		}
@@ -514,7 +518,7 @@ func (s *SurveyService) FinishInterview(surveyID int, interviewID string, isDemo
 		}
 
 		// Валидируем вопрос
-		if err := s.ValidateAnswer(question, answer); err != nil {
+		if err := s.ValidateAnswer(question, answer, interviewID, isDemo); err != nil {
 			return err
 		}
 	}

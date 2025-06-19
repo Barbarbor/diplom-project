@@ -7,6 +7,7 @@ import {
 } from '@/api-client/option';
 import { GetSurveyResponse } from '@/types/survey';
 import { OptionResponse, UpdateOptionLabelRequest, UpdateOptionOrderRequest } from '@/types/option';
+import { CustomError } from '@/lib/error';
 
 // Ключ для кэширования данных опроса
 const SURVEY_QUERY_KEY = (hash: string) => ['survey', hash];
@@ -22,7 +23,7 @@ export const useCreateOption = () => {
     mutationFn: async ({ hash, questionId }) => {
       const response = await createOption(hash, questionId);
       if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to create option');
+        throw new CustomError(response.error || 'Failed to create option', response.status);
       }
       return response.data;
     },

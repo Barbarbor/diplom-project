@@ -1,6 +1,8 @@
 package domain
 
-import "time"
+import (
+	"time"
+)
 
 // Статистика опросов
 type SurveyStat struct {
@@ -25,11 +27,12 @@ type InterviewTime struct {
 }
 
 type QuestionStats struct {
-	ID      int           `json:"id" db:"id"`
-	Label   string        `json:"label" db:"label"`
-	Type    QuestionType  `json:"type" db:"type"`
-	Options []OptionStats `json:"options,omitempty" db:"-"`
-	Answers []string      `json:"answers" db:"-"`
+	ID          int           `json:"id" db:"id"`
+	Label       string        `json:"label" db:"label"`
+	Type        QuestionType  `json:"type" db:"type"`
+	Options     []OptionStats `json:"options,omitempty" db:"-"`
+	Answers     []string      `json:"answers" db:"-"`
+	ExtraParams ExtraParams   `json:"extra_params" db:"extra_params"` // Типизированные параметры
 }
 
 type OptionStats struct {

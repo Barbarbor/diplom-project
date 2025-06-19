@@ -252,6 +252,11 @@ export const RatingQuestion = ({ question, onUpdate, error }: RatingProps) => {
     question.answer ? parseInt(question.answer, 10) : 0
   );
 
+  // Получаем starsCount из extra_params или устанавливаем значение по умолчанию 5
+  const starsCount = question.extra_params?.starsCount
+    ? parseInt(question.extra_params.starsCount, 10)
+    : 5;
+
   const handleClick = (value: number) => {
     setRating(value);
     onUpdate(value);
@@ -261,10 +266,10 @@ export const RatingQuestion = ({ question, onUpdate, error }: RatingProps) => {
     <div className="mb-4">
       <p className="font-medium">
         {question.label}
-        {question.extra_params.required && <span className="text-red-500">*</span>}
+        {question.extra_params?.required && <span className="text-red-500">*</span>}
       </p>
       <div className="flex">
-        {[1, 2, 3, 4, 5].map((star) => (
+        {Array.from({ length: starsCount }, (_, index) => index + 1).map((star) => (
           <span
             key={star}
             className={`text-2xl cursor-pointer ${

@@ -18,9 +18,9 @@ export const useGetInterviewId = (hash: string, isDemo?: string) => {
       return result;
     };
 
-    const getOrCreateInterviewId = async () => {
+    const getOrCreateInterviewId = async (isDemo?: boolean) => {
       const storedId = localStorage.getItem(`survey-${hash}`);
-      if (storedId) {
+      if (storedId && !isDemo) {
         setInterviewId(storedId);
         setLoading(false);
         return;
@@ -49,7 +49,7 @@ export const useGetInterviewId = (hash: string, isDemo?: string) => {
       }
     };
 
-    getOrCreateInterviewId();
+    getOrCreateInterviewId(isDemo);
   }, [hash, startInterview]);
 
   return { interviewId, loading: loading || startLoading, error: error || startError?.message };
