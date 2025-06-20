@@ -9,6 +9,7 @@ import Footer from "@/components/common/Footer";
 import WithPathname from "@/components/common/WithPathname";
 import CookieBanner from "@/components/banners/CookieBanner";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { getLanguage } from "@/lib/lang";
 
 export const metadata: Metadata = {
   title: "Survey Platform",
@@ -22,13 +23,15 @@ export default async function RootLayout({
 }>) {
   const isLogged = await checkIsUserLogged();
 
+const language = await getLanguage();
 
   return (
     <html lang="ru">
     <body className="flex flex-col min-h-screen">
        <ErrorBoundary>
         <QueryProvider>
-          <I18nWrapper>
+          <I18nWrapper language={language} >
+          
             <WithPathname restrictedPaths={['/landing', '/poll', '/privacy','/terms', '/contacts']}>
             <Navbar withProfile={isLogged} />
             </WithPathname>
@@ -39,6 +42,7 @@ export default async function RootLayout({
              <WithPathname restrictedPaths={['/poll']}>
             <CookieBanner />
             </WithPathname>
+          
           </I18nWrapper>
         </QueryProvider>
         </ErrorBoundary>

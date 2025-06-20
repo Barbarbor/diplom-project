@@ -16,3 +16,9 @@ type SurveyRoles struct {
 	UserID   int            `json:"user_id" db:"user_id"`
 	Roles    pq.StringArray `json:"roles" db:"roles"`
 }
+
+type Roles struct {
+	ID     int            `json:"id" db:"id"`
+	Roles  pq.StringArray `json:"roles" db:"roles"`
+	UserID int            `json:"user_id" db:"user_id"`
+}

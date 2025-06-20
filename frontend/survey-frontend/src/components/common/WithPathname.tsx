@@ -15,7 +15,7 @@ export default function WithPathname({
   const shouldRender = !restrictedPaths?.some((restrictedPath) =>
     pathname.startsWith(restrictedPath)
   );
-console.log('render?', shouldRender)
+
   // Если путь не ограничен, рендерим children, иначе ничего не рендерим
   return shouldRender ? <>{children}</> : null;
 }

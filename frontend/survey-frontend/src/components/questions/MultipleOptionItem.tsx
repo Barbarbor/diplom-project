@@ -14,7 +14,6 @@ export default function MultipleOptionItem({ hash, questionId, option }: Props) 
   const [label, setLabel] = useState(option.label || '');
   const updateLabel = useUpdateOptionLabel();
   const deleteOpt = useDeleteOption();
-  console.log('opt', option);
 
   const handleLabelChange = (newLabel: string) => {
     setLabel(newLabel);

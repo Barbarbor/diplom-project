@@ -22,12 +22,33 @@ func (r *profileRepository) GetUserProfile(userID int) (*domain.UserProfile, err
 	if err := r.db.Get(&profile, query, userID); err != nil {
 		return nil, fmt.Errorf("failed to fetch profile: %w", err)
 	}
+
 	return &profile, nil
 }
-
 func (r *profileRepository) UpdateUserProfile(profile *domain.UserProfile) error {
-	query := `UPDATE user_profiles SET first_name = $1, last_name = $2, birth_date = $3, phone_number = $4, lang = $5 WHERE user_id = $6`
-	result, err := r.db.Exec(query, profile.FirstName, profile.LastName, profile.BirthDate, profile.PhoneNumber, profile.Lang, profile.UserID)
+	var birthDateArg interface{} // Use interface{} to handle nil or *time.Time
+	if profile.BirthDate != nil && profile.BirthDate.Time != nil {
+		birthDateArg = profile.BirthDate.Time
+	} else {
+		birthDateArg = nil
+	}
+
+	query := `
+		UPDATE user_profiles 
+		SET 
+			first_name = COALESCE(NULLIF($1, ''), first_name),
+			last_name = COALESCE(NULLIF($2, ''), last_name),
+			birth_date = COALESCE($3, birth_date),
+			phone_number = COALESCE(NULLIF($4, ''), phone_number),
+			lang = COALESCE(NULLIF($5, ''), lang)
+		WHERE user_id = $6`
+	result, err := r.db.Exec(query,
+		profile.FirstName,
+		profile.LastName,
+		birthDateArg,
+		profile.PhoneNumber,
+		profile.Lang,
+		profile.UserID)
 	if err != nil {
 		return fmt.Errorf("failed to update profile: %w", err)
 	}

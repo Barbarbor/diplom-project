@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -25,9 +24,6 @@ func LoadConfig() Config {
 	if config.ServerPort == "" {
 		config.ServerPort = ":8000"
 	}
-
-	fmt.Println("Database URL:", config.DatabaseURL)
-	fmt.Println("Redis Address:", config.RedisAddr)
 
 	return config
 }

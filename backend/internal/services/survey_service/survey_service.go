@@ -446,7 +446,7 @@ func (s *SurveyService) ValidateAnswer(question interface{}, answer *string, int
 					}
 					// Приводим к началу дня для корректного сравнения
 					minDate = time.Date(minDate.Year(), minDate.Month(), minDate.Day(), 0, 0, 0, 0, minDate.Location())
-					fmt.Println("mindate", minDate)
+
 					if date.Before(minDate) {
 						return errors.New("date is before minDate")
 					}
@@ -459,8 +459,7 @@ func (s *SurveyService) ValidateAnswer(question interface{}, answer *string, int
 					}
 					// Приводим к началу дня для корректного сравнения
 					maxDate = time.Date(maxDate.Year(), maxDate.Month(), maxDate.Day(), 0, 0, 0, 0, maxDate.Location())
-					fmt.Println("maxdate", maxDate)
-					fmt.Println("date", date)
+
 					if date.After(maxDate) {
 						return errors.New("date is after maxDate")
 					}

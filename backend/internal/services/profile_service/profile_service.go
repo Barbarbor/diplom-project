@@ -19,6 +19,7 @@ func NewProfileService(repo repositories.ProfileRepository) *ProfileService {
 
 func (s *ProfileService) GetUserProfile(ctx context.Context, userID int) (*models.UserProfile, error) {
 	profile, err := s.repo.GetUserProfile(userID)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user profile: %w", err)
 	}

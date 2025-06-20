@@ -51,7 +51,7 @@ export const SurveyActions = ({
 
   return (
     <div className="flex space-x-4">
-      <div className="fixed top-20 right-6 w-48 p-4 bg-white border border-gray-300 rounded shadow-md">
+      <div className="fixed top-60 right-6 w-48 p-4 bg-white border border-gray-300 rounded shadow-md">
         <div className="relative">
           <button
             className="w-full mb-2 px-4 py-2 bg-blue-600 text-white rounded"
@@ -64,7 +64,7 @@ export const SurveyActions = ({
               {questionTypes.map(({ type, label }) => (
                 <li
                   key={type}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer z-10"
                   onClick={() => handleSelectQuestionType(type)}
                 >
                   {label}

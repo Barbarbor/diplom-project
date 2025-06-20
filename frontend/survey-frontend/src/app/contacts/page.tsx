@@ -3,7 +3,7 @@ import React from "react";
 import { getTranslations } from "@/i18n.server";
 
 export default async function ContactsPage() {
-  const { t } = await getTranslations("ru", "translation");
+  const { t } = await getTranslations("translation");
 
   return (
     <div className="max-w-3xl mx-auto py-12 px-4 space-y-6">

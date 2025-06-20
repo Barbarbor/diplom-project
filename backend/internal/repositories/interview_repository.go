@@ -3,7 +3,6 @@ package repositories
 import (
 	"backend/internal/domain"
 	"database/sql"
-	"fmt"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -37,7 +36,7 @@ func (r *interviewRepository) CreateInterview(interview *domain.SurveyInterview)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`, interview.ID, interview.SurveyID, interview.UserID, interview.Status, interview.StartTime, interview.EndTime, interview.IsDemo)
 	if err != nil {
-		fmt.Println("ERRR", err)
+
 		return err
 	}
 
@@ -49,7 +48,7 @@ func (r *interviewRepository) CreateInterview(interview *domain.SurveyInterview)
 			WHERE survey_id = $1
 		`, interview.SurveyID)
 		if err != nil {
-			fmt.Println("ERRR updating started_interviews:", err)
+
 			return err
 		}
 	}

@@ -116,7 +116,7 @@ func (r *surveyRepository) GetSurveyIdByHash(hash string, isDemo bool) (int, err
 	}
 
 	if err := r.db.QueryRow(query, hash).Scan(&surveyID); err != nil {
-		fmt.Print("surveyid", surveyID)
+
 		return -1, err
 	}
 

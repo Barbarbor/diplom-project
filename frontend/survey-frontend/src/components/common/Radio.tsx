@@ -11,7 +11,7 @@ interface RadioProps {
 
 export default function Radio({onChange = ()=> {}, name, value, disabled = false, checked=false }: RadioProps) {
   return (
-    <div className="mb-4">
+    <div>
       <input onChange={onChange} type="radio" name={name} value={value} disabled={disabled} className="mr-2" checked={checked} />
     </div>
   );

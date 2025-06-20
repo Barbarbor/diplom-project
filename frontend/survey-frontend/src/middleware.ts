@@ -20,7 +20,8 @@ export async function middleware(request: NextRequest) {
       "/surveyslist",
       "/survey/:hash",
       "/survey/:hash/stats",
-      "/"
+      "/",
+      "/profile"
     ];
 
     const isProtectedPath = protectedPaths.some((path) => {
@@ -42,5 +43,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/register", "/surveyslist", "/survey/:path*", "/landing", "/poll/:path*", "/"],
+  matcher: ["/login", "/register", "/surveyslist", "/survey/:path*", "/landing", "/poll/:path*", "/", "/profile"],
 };

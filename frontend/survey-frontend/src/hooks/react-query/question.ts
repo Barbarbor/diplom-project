@@ -92,11 +92,11 @@ export const useUpdateStateBadge = () => {
       const currentQuestion = currentSurvey?.survey.questions.find(
         (q) => q.id === questionId
       );
-
+      console.log('curr q', currentQuestion, 'newstate', newState)
       // Логика: не обновляем, если новое состояние совпадает с текущим или равно "NEW"
       if (
         currentQuestion?.question_state === newState ||
-        newState === "NEW"
+         currentQuestion?.question_state === "NEW"
       ) {
         return; // Ничего не делаем
       }
@@ -138,7 +138,7 @@ export const useUpdateStateBadge = () => {
 // Hook для обновления метки вопроса
 export const useUpdateQuestionLabel = () => {
   const queryClient = useQueryClient();
-  const updateStateBadge = useUpdateStateBadge();
+
   return useMutation<
     void,
     Error,
@@ -172,8 +172,8 @@ export const useUpdateQuestionLabel = () => {
       );
       return { previousSurvey };
     },
-    onSuccess: (_, { hash, questionId }) => {
-      updateStateBadge.mutate({ hash, questionId, newState: "CHANGED" });
+    onSuccess: (_, { hash }) => {
+    queryClient.refetchQueries({ queryKey: SURVEY_QUERY_KEY(hash) });
     },
     // onError: (err, { hash }, context) => {
     //   queryClient.setQueryData(SURVEY_QUERY_KEY(hash), context?.previousSurvey);

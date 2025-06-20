@@ -167,7 +167,7 @@ func (r *questionRepository) GetQuestionOptionRows(surveyID int) ([]QuestionOpti
 	var rows []QuestionOptionRow
 
 	err := r.db.Select(&rows, query, surveyID)
-	fmt.Print(err)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to query question options: %w", err)
 	}

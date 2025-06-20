@@ -6,7 +6,7 @@ import { checkIsUserLogged } from "@/api-client/auth";
 import { getTranslations } from "@/i18n.server";
 
 export default async function LandingPage() {
-  const { t } = await getTranslations("ru", "translation");
+  const { t } = await getTranslations("translation");
   const isUserLogged = await checkIsUserLogged();
 
   return (

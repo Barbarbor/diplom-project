@@ -8,7 +8,6 @@ import { Block } from '../common/Block';
 function filterValidAnswers(question: QuestionStats): string[] {
   const { type, answers, options } = question;
   const nonNullableAnswers = answers === null? []: answers;
-  console.log('answers', nonNullableAnswers)
   switch (type) {
     case 'single_choice':
       const validOptionIds = options?.map(opt => opt.id.toString()) || [];

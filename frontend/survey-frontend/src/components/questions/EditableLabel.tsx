@@ -18,7 +18,7 @@ export default function EditableLabel({ initialLabel, onLabelChange }: EditableL
       type="text"
       value={initialLabel}
       onChange={handleChange}
-      className="block text-gray-700 font-bold mb-2 w-full border-none focus:outline-none"
+      className="block text-gray-700 font-bold p-1 w-full border-none focus:outline-none"
     />
   );
 }

@@ -6,7 +6,6 @@ export const useGetInterviewId = (hash: string, isDemo?: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { mutate: startInterview, isLoading: startLoading, error: startError } = useStartInterview();
-  console.log('isdemo', isDemo)
 
   useEffect(() => {
     const generateRandomId = () => {

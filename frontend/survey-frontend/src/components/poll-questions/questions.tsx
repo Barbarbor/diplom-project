@@ -33,7 +33,7 @@ export const SingleChoiceQuestion = ({ question, onUpdate, error }: SingleChoice
               checked={selected === option.id.toString()}
               onChange={() => handleChange(option.id.toString())}
             />
-            <span>{option.label}</span>
+            <span className="p-1">{option.label}</span>
           </li>
         ))}
       </ul>
@@ -83,7 +83,7 @@ interface MultiChoiceProps {
               onChange={() => handleChange(option.id.toString())}
               disabled={false}
             />
-            <span>{option.label}</span>
+            <span className="p-1">{option.label}</span>
           </li>
         ))}
       </ul>
@@ -189,7 +189,7 @@ export const ConsentQuestion = ({ question, onUpdate }: ConsentProps) => {
           onChange={handleChange}
           disabled={false}
         />
-        <span>Согласен</span>
+        <span className="p-1">Согласен</span>
       </div>
     </div>
   );

@@ -59,7 +59,6 @@ const serverRequest = async <T = unknown>({
       tags: cache.tags ?? undefined,
     },
   };
-
   const response = await fetch(fullUrl, fetchOptions);
   const responseData = await response.json();
 

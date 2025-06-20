@@ -39,7 +39,6 @@ const LoginPage = () => {
 const onSubmit = async (data: LoginFormData) => {
   const response = await loginUser(data);
   if (response.status >= 400) {
-    console.log(response.error);
     setError("root", {
       type: "server",
       message: response.error,

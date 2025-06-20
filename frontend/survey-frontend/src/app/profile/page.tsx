@@ -1,70 +1,31 @@
-'use client';
 
-import React, { useState, useEffect } from 'react';
-import { fetchUserProfile, saveUserProfile } from '@/api-client/profile';
-import Input from '@/components/common/Input';
-import Select from '@/components/common/Select';
-import Button from '@/components/common/Button';
-import { getUser } from '@/api-client/auth';
+import { fetchUserProfile } from '@/api-client/profile';
+import ProfilePageClient from './pageClient';
 
-const ProfilePage = () => {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    birthDate: '',
-    phoneNumber: '',
-    language: 'en',
-  });
+export default async function ProfilePageServer() {
+  let profileData =  {
+    first_name: '',
+    last_name: '',
+    birth_date: '',
+    phone_number: '',
+    lang: 'ru'
+  };
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const profile = await getUser()
-        setFormData(profile);
-      } catch (error) {
-        console.error('Failed to load profile:', error);
-      }
+  try {
+    const response = await fetchUserProfile();
+    // @ts-expect-error Property 'profile' does not exist on type '{ first_name?: string | undefined; last_name?: string | undefined; birth_date?: string | undefined; phone_number?: string | undefined; lang?: string | undefined; }'.
+    const profile = await response.data.profile;
+
+    profileData = {
+      first_name: profile?.first_name || '',
+      last_name: profile?.last_name || '',
+      birth_date: profile?.birth_date?.Time || '',
+      phone_number: profile?.phone_number || '',
+      lang: profile?.lang as 'ru' | 'en' || 'ru',
     };
+  } catch (error) {
+    console.error('Failed to load profile on server:', error);
+  }
 
-    loadProfile();
-  }, []);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await saveUserProfile(formData);
-      alert('Profile saved successfully!');
-    } catch (error) {
-      console.error('Failed to save profile:', error);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md w-full max-w-lg">
-        <h1 className="text-xl font-bold mb-4">Edit Profile</h1>
-        <Input label="First Name" type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} />
-        <Input label="Last Name" type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} />
-        <Input label="Birth Date" type="date" name="birthDate" value={formData.birthDate} onChange={handleInputChange} />
-        <Input label="Phone Number" type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} />
-        <Select
-          label="Language"
-          name="language"
-          value={formData.language}
-          options={[
-            { value: 'en', label: 'English' },
-            { value: 'ru', label: 'Русский' },
-          ]}
-          onChange={handleInputChange}
-        />
-        <Button>Save</Button>
-      </form>
-    </div>
-  );
-};
-
-export default ProfilePage;
+  return <ProfilePageClient initialData={profileData} />;
+}

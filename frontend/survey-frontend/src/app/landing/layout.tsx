@@ -1,8 +1,9 @@
-// app/layout.tsx
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "@/i18n.server";
+import LanguageSelect from "@/components/common/Language";
+import { checkIsUserLogged } from "@/api-client/auth";
 
 export const metadata = {
   title: "SurveyPlatform",
@@ -14,23 +15,25 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { t } = await getTranslations("ru", "translation");
+  const { t } = await getTranslations("translation");
+  const isUserLogged = await checkIsUserLogged();
 
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="bg-gray-100 text-white p-4">
-        <div className="max-w-7xl mx-auto flex items-center">
+      <header className="bg-gray-100  p-4">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="relative w-[150px] h-[55px]">
             <Link href="/landing">
               <Image
                 src="/logo.jpg"
-                alt={t("landing.layout.logo_alt") || "Logo"} // Добавим перевод для alt, если нужно
+                alt={t("landing.layout.logo_alt") || "Logo"}
                 layout="fill"
                 objectFit="cover"
               />
             </Link>
           </div>
+          <LanguageSelect isUserLogged={isUserLogged} />
         </div>
       </header>
 

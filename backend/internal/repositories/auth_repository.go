@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -17,7 +18,6 @@ type authRepository struct {
 func NewAuthRepository(db *sqlx.DB) AuthRepository {
 	return &authRepository{db: db}
 }
-
 func (r *authRepository) CreateUser(email, password string) (int, error) {
 	// Проверяем, существует ли пользователь
 	var exists bool
@@ -35,10 +35,39 @@ func (r *authRepository) CreateUser(email, password string) (int, error) {
 		return 0, err
 	}
 
+	// Начинаем транзакцию
+	tx, err := r.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		err = tx.Commit()
+	}()
+
+	// Вставляем пользователя
 	var userID int
 	query := "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id"
-	if err := r.db.QueryRow(query, email, string(hashedPassword)).Scan(&userID); err != nil {
+	if err := tx.QueryRow(query, email, string(hashedPassword)).Scan(&userID); err != nil {
 		return 0, err
+	}
+
+	// Вставляем запись в roles с ролью "user"
+	rolesQuery := "INSERT INTO roles (user_id, roles) VALUES ($1, $2)"
+	_, err = tx.Exec(rolesQuery, userID, pq.Array([]string{"user"}))
+	if err != nil {
+		return 0, fmt.Errorf("failed to insert roles: %w", err)
+	}
+
+	// Вставляем запись в user_profiles (только user_id)
+	profileQuery := "INSERT INTO user_profiles (user_id,lang) VALUES ($1, 'ru')"
+	_, err = tx.Exec(profileQuery, userID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to insert user profile: %w", err)
 	}
 
 	return userID, nil
